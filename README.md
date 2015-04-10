@@ -16,7 +16,7 @@ Uninstall the activity app (modify the brackets `[ ]` in the examples below)
 Install the new activity app (modify the brackets `[ ]` in the examples below)
 - Create the external database for the new activity app (choose a desired name)
 <br/> (ex.: `sudo -u postgres -H -- psql -c "CREATE DATABASE [owncloud_activity]"`).
-- Include the new activity app folder in the ownCloud (`/[path_to_owncloud]/apps/`).
+- Include the new activity app folder in the ownCloud (copy `/[..]/oob_activity/activity` and paste to `/[path_to_owncloud]/apps/`).
 - Grant privilegies to the new activity folder.
 <br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/activity`) 
 - Enable the new activity app as ownCloud administrator
