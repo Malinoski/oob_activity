@@ -10,7 +10,7 @@ Uninstall the activity app (modify the brackets `[ ]` in the examples below)
 - Remove the activity app folder from the ownCloud (`/[path_to_owncloud]/apps/activity/`).
 - Remove all occurrences of the activity app from the `oc_appconfig` table 
 <br/> (ex.: `sudo -u postgres -H -- psql -d [owncloud704test] -c "delete from oc_appconfig where appid='activity'"`).
-- [Optinal] Remove the activity app tables
+- [Optional] Remove the activity app tables
 <br/> (ex.: `sudo -u postgres -H -- psql -d [owncloud704test] -c "DROP TABLE oc_activity, oc_activity_mq"`).
 
 Install the new activity app (modify the brackets `[ ]` in the examples below)
