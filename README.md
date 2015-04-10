@@ -1,7 +1,7 @@
-# ownCloud Activity App For External Database
+# ownCloud Activity App For External ("Out-Of-Band") Database
 
 ## Description
-The app [activity](https://github.com/owncloud/activity), version 1.1.23, was modified to use its own external database for activity data. This modified app was only tested for ownCloud 7.0.4 and PostgreSQL 9.3.6.
+The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity) version 1.1.23, provided for ownCloud, to use its own external ("out-of-band") database for activity data. The oob_activity app was only tested for ownCloud 7.0.4 and PostgreSQL 9.3.6.
 
 ## Instalation 
 - Backup your ownCloud and database.
@@ -23,3 +23,6 @@ Install the new activity app (modify the brackets `[ ]` in the examples below)
 <br/> (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
 - The new activity app automatically creates the `oc_activity_ext_db_conf` table, but needs to be filled manually
 <br/> (ex.: `sudo -u postgres -H -- psql -d owncloud704test -c "UPDATE oc_activity_ext_db_conf SET dbusername='[username]', dbpassword='[password]', dbname='[owncloud_activity]', dbhost='[ip.of.the.external.db]' where activity_conf_id=1;"`.
+
+## Acknowledgements
+This development has been funded by [FINEP](http://www.finep.gov.br), the Brazilian Innovation Agency.
