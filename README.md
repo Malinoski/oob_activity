@@ -1,4 +1,4 @@
-# ownCloud Activity App For Log File
+# ownCloud Activity App For External ("Out-Of-Band") Database
 
 ## Description
 The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity) version 1.1.23,  provided for ownCloud, to use its own external ("out-of-band") database for activity data. The oob_activity app was only tested for ownCloud 7.0.4 and PostgreSQL 9.3.6.
@@ -16,9 +16,10 @@ Uninstall the activity app:
 Install the oob_activity app:
 - Create the external database for the oob_activity app.
 <br/> (ex.: `sudo -u postgres -H -- psql -c "CREATE DATABASE owncloud_logactivity_db"`).
-- Download and extract the last oob_activity reseale (v1.1).
-- Put the oob_activity 'activity' folder (`/[..]/oob_activity/activity`) in the ownCloud apps folder (`/[path_to_owncloud]/apps/`).
-- Grant privilegies to the oob_activity 'activity' folder.
+- Download and extract the last oob_activity reseale.
+- Rename the extracted folder to "activity".
+- Move the oob_activity "activity" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
+- Grant privilegies to the oob_activity "activity" folder.
 <br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/activity`).
 - Configure the oob_activity parameters as desired (`/[path_to_owncloud]/apps/activity/config/config.php`).
 
