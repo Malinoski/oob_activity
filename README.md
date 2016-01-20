@@ -3,6 +3,15 @@
 ## Description
 The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity) version 1.1.23,  provided for ownCloud, to use its own external ("out-of-band") database for activity data. The oob_activity app was only tested for ownCloud 7.0.4 and PostgreSQL 9.3.6.
 
+## Releases
+
+[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
+- Added the configuration file [owncloud home]/apps/activity/config/config.xml.
+- Added the feature to register user activity in log files optionally through configuration file.
+
+[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
+- Fisrt version.
+
 ## Instalation 
 - Backup your ownCloud and database.
 
@@ -26,15 +35,6 @@ Install the oob_activity app:
 Activate the oob_acivity in your ownCloud server 
 - Login as administrator and activate the oob_activity app.
 <br/> (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
-
-## Releases
-
-[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
-- Added the configuration file [owncloud home]/apps/activity/config/config.xml.
-- Added the feature to register user activity in log files optionally through configuration file.
-
-[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
-
 
 ## Acknowledgements
 This development has been funded by [FINEP](http://www.finep.gov.br), the Brazilian Innovation Agency.
