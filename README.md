@@ -10,7 +10,7 @@ The oob_activity app modifies the original app [activity](https://github.com/own
 - Added the feature to register user activity in log files optionally through configuration file.
 
 [v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
-- Fisrt version.
+- First version.
 
 ## Instalation 
 - Backup your ownCloud and database.
