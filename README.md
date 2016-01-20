@@ -27,5 +27,14 @@ Activate the oob_acivity in your ownCloud server
 - Login as administrator and activate the oob_activity app.
 <br/> (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
 
+## Releases
+
+[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
+- Added the configuration file [owncloud home]/apps/activity/config/config.xml.
+- Added the feature to register user activity in log files optionally through configuration file.
+
+[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
+
+
 ## Acknowledgements
 This development has been funded by [FINEP](http://www.finep.gov.br), the Brazilian Innovation Agency.
