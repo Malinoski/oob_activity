@@ -29,11 +29,11 @@ Activate the oob_acivity in your ownCloud server
 
 ## Releases
 
-[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
+[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
 - Added the configuration file [owncloud home]/apps/activity/config/config.xml.
 - Added the feature to register user activity in log files optionally through configuration file.
 
-[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
+[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 
 
 ## Acknowledgements
