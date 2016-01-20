@@ -29,7 +29,7 @@ require_once 'apps/activity/lib/db/public/db.php';
 
 use \OCP\User;
 use \OCP\Util;
-use \OCA\Activity;
+use \OCP\Config;
 
 /**
  * @brief Class for managing the data in the activities
@@ -57,6 +57,8 @@ class Data
 
 	const TYPE_STORAGE_QUOTA_90 = 'storage_quota_90';
 	const TYPE_STORAGE_FAILURE = 'storage_failure';
+	
+	
 
 	/** @var \OCP\Activity\IManager */
 	protected $activityManager;
@@ -129,21 +131,26 @@ class Data
 			$auser = $affecteduser;
 		}
 	
+		
 		// store in log
-		$arrayMessage = array(
-				'app'=> $app, 
-				'subject' => $subject, 
-				'subjectparams' => serialize($subjectparams), 
-				'message' => $message, 
-				'messageparams' => serialize($messageparams), 
-				'file' => $file, 
-				'link' => $link, 
-				'user' => $user, 
-				'affecteduser' => $auser,
-				'timestamp' => $timestamp, 
-				'priority' => $prio, 
-				'type' => $type);
-		LogActivity::registerLog($arrayMessage);
+		$activityLog = Config::getAppValue('activity', 'activityLog');
+		if($activityLog === 'true'){
+			$arrayMessage = array(
+					'app'=> $app,
+					'subject' => $subject,
+					'subjectparams' => serialize($subjectparams),
+					'message' => $message,
+					'messageparams' => serialize($messageparams),
+					'file' => $file,
+					'link' => $link,
+					'user' => $user,
+					'affecteduser' => $auser,
+					'timestamp' => $timestamp,
+					'priority' => $prio,
+					'type' => $type);
+			LogActivity::registerLog($arrayMessage);
+		}
+		
 		
 		// store in DB
 		$query = DB::prepare('INSERT INTO `*PREFIX*activity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
@@ -170,17 +177,21 @@ class Data
 		$timestamp = time();
 
 
-// 		// store in log
-// 		$arrayMessage = array(
-// 				'amq_appid' => $app,
-// 				'amq_subject' => $subject,
-// 				'amq_subjectparams' => serialize($subjectParams),
-// 				'amq_affecteduser' => $affectedUser,
-// 				'amq_timestamp' => $timestamp,
-// 				'amq_type' => $type,
-// 				'amq_latest_send' => $latestSendTime				
-// 		);				
-// 		LogActivity::registerLog($arrayMessage);
+		// store in log
+		$activityLog = Config::getAppValue('activity', 'activityLog');
+		if($activityLog === 'true'){
+ 			// store in log
+ 			$arrayMessage = array(
+ 				'amq_appid' => $app,
+ 				'amq_subject' => $subject,
+ 				'amq_subjectparams' => serialize($subjectParams),
+ 				'amq_affecteduser' => $affectedUser,
+				'amq_timestamp' => $timestamp,
+ 				'amq_type' => $type,
+ 				'amq_latest_send' => $latestSendTime				
+ 			);				
+ 			LogActivity::registerLog($arrayMessage);
+		}
 		
 		// store in DB
 		$query = DB::prepare('INSERT INTO `*PREFIX*activity_mq` '
@@ -277,9 +288,6 @@ class Data
 					}
 			}
 		}
-
-// 		$arrayMessage = $parameters;
-// 		LogActivity::registerLog($arrayMessage);
 		
 		// fetch from DB
 		$query = DB::prepare(

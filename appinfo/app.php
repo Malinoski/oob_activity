@@ -1,5 +1,7 @@
 <?php
 
+use OCA\Activity\LogActivity;
+use Doctrine\Common\Collections\Expr\Value;
 /**
  * ownCloud - Activity App
  *
@@ -23,9 +25,20 @@
 
 require_once 'apps/activity/lib/db/ActivityDBHelper.php';
 require_once 'apps/activity/lib/log.php';
+require_once 'apps/activity/config/config.php';
 
+//load log file configuration from /activity/config/config.php
+OCP\Config::setAppValue('activity', 'activityLog', $ACTIVITY_CONFIG['activityLog']);
+OCP\Config::setAppValue('activity', 'logFilePath', $ACTIVITY_CONFIG['logFilePath']);
 
-//ActivityDBHelper::prepareApp();
+//load database configuration from /activity/config/config.php
+// OCP\Config::setAppValue('activity', 'activityDb', $ACTIVITY_CONFIG['activityDb']);
+OCP\Config::setAppValue('activity', 'db_host',    $ACTIVITY_CONFIG['db_host']);
+OCP\Config::setAppValue('activity', 'db_user',    $ACTIVITY_CONFIG['db_user']);
+OCP\Config::setAppValue('activity', 'db_password',$ACTIVITY_CONFIG['db_password']);
+OCP\Config::setAppValue('activity', 'db_name',    $ACTIVITY_CONFIG['db_name']);
+
+ActivityDBHelper::prepareApp();	
 
 $l = OC_L10N::get('activity');
 
@@ -35,7 +48,7 @@ OCP\App::addNavigationEntry(array(
 	'order' => 1,
 	'href' => OCP\Util::linkToRoute('activity.index'),
 	'icon' => OCP\Util::imagePath('activity', 'activity.svg'),
-	'name' => $l->t('Activity'),	
+	'name' => $l->t('Activity'),
 ));
 
 // register the hooks for filesystem operations. All other events from other apps has to be send via the public api

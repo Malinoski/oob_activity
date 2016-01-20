@@ -24,6 +24,8 @@
 
 require_once 'apps/activity/lib/db/ActivityDBHelper.php';
 
+use \OCP\Config;
+
 class ActivityDatabaseException extends Exception {
 	private $query;
 
@@ -65,36 +67,34 @@ class ACTIVITY_DB {
 			return false;
 		}
 
-		if(!OC_DB::tableExists('activity_ext_db_conf')){				
-			ActivityDBHelper::createConfigurationTable();		
-		}
+// 		if(!OC_DB::tableExists('activity_ext_db_conf')){				
+// 			ActivityDBHelper::createConfigurationTable();		
+// 		}		
 		
-		
-		//Get external db configuration 
-		$sql = "SELECT * FROM oc_activity_ext_db_conf WHERE activity_conf_id=1";
-		$query = OCP\DB::prepare($sql);
-		$result = $query->execute()->fetchRow();
+// // 		//Get external db configuration 
+//  		$sql = "SELECT * FROM oc_activity_ext_db_conf WHERE activity_conf_id=1";
+//  		$query = OCP\DB::prepare($sql);
+//  		$result = $query->execute()->fetchRow();
 		
 		$connectionParams = array(
-			//'user' => OC_Config::getValue('dbuser', ''),
-			//'user' => 'username',				
-			'user' => $result['dbusername'],
+			//'user' => OC_Config::getValue('dbuser', ''),		
+			//'user' => $result['dbusername'],
+			'user' => Config::getAppValue('activity', 'db_user'),
 			//'password' => OC_Config::getValue('dbpassword', ''),
-			//'password' => 'password',
-			'password' => $result['dbpassword'],
+			//'password' => $result['dbpassword'],
+			'password' => Config::getAppValue('activity', 'db_password'),
 		);
 		//$name = OC_Config::getValue('dbname', 'owncloud');
-		//$name = 'owncloud704ActivityFreeDb';
-		//$name = 'owncloud704activity';
-		$name = $result['dbname'];
+		//$name = $result['dbname'];
+		$name = Config::getAppValue('activity', 'db_name');
 
 		if ($factory->normalizeType($type) === 'sqlite3') {
 			$datadir = OC_Config::getValue("datadirectory", OC::$SERVERROOT.'/data');
 			$connectionParams['path'] = $datadir.'/'.$name.'.db';
 		} else {
 			//$host = OC_Config::getValue('dbhost', '');
-			//$host = 'locahost';
-			$host = $result['dbhost'];
+			//$host = $result['dbhost'];
+			$host = Config::getAppValue('activity', 'db_host');
 			if (strpos($host, ':')) {
 				// Host variable may carry a port or socket.
 				list($host, $portOrSocket) = explode(':', $host, 2);
