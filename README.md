@@ -5,6 +5,9 @@ The oob_activity app modifies the original app [activity](https://github.com/own
 
 ## Releases
 
+[v1.2](https://github.com/Malinoski/oob_activity/releases/tag/v1.2)
+- Enhanced the feature for user activity in syslog. This feature can be enable or disable in configuration file ([owncloud home]/apps/activity/config/config.xml).
+
 [v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
 - Added the configuration file [owncloud home]/apps/activity/config/config.xml.
 - Added the feature to register user activity in log files optionally through configuration file.
@@ -12,7 +15,7 @@ The oob_activity app modifies the original app [activity](https://github.com/own
 [v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 - First version.
 
-## Instalation 
+## Instalation
 - Backup your ownCloud and database.
 
 Uninstall the activity app:

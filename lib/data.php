@@ -148,7 +148,7 @@ class Data
 					'timestamp' => $timestamp,
 					'priority' => $prio,
 					'type' => $type);
-			LogActivity::registerLog($arrayMessage);
+			ActivityLogger::registerLog($arrayMessage);
 		}
 		
 		
@@ -190,7 +190,7 @@ class Data
  				'amq_type' => $type,
  				'amq_latest_send' => $latestSendTime				
  			);				
- 			LogActivity::registerLog($arrayMessage);
+ 			LogActivity::ActivityLogger($arrayMessage);
 		}
 		
 		// store in DB

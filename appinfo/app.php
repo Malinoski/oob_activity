@@ -24,12 +24,11 @@ use Doctrine\Common\Collections\Expr\Value;
  */
 
 require_once 'apps/activity/lib/db/ActivityDBHelper.php';
-require_once 'apps/activity/lib/log.php';
+require_once 'apps/activity/lib/log/ActivityLogger.php';
 require_once 'apps/activity/config/config.php';
 
 //load log file configuration from /activity/config/config.php
 OCP\Config::setAppValue('activity', 'activityLog', $ACTIVITY_CONFIG['activityLog']);
-OCP\Config::setAppValue('activity', 'logFilePath', $ACTIVITY_CONFIG['logFilePath']);
 
 //load database configuration from /activity/config/config.php
 // OCP\Config::setAppValue('activity', 'activityDb', $ACTIVITY_CONFIG['activityDb']);
@@ -56,6 +55,10 @@ OCA\Activity\Hooks::register();
 
 // Personal settings for notifications and emails
 OCP\App::registerPersonal('activity', 'personal');
+
+//[TODO]
+// Admin Settings 
+//OCP\App::registerAdmin('activity', 'admin-settings');
 
 // Cron job for sending Emails
 OCP\Backgroundjob::registerJob('OCA\Activity\BackgroundJob\EmailNotification');

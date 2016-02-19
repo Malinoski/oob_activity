@@ -3,7 +3,6 @@ $ACTIVITY_CONFIG = array (
 		
   //log file configuration
   'activityLog' => 'true', // true|false - Enable or disable this feature
-  'logFilePath' => '/data/activitylog.log',
 		
   //database configuration
   //'activityDb' => 'false', // Do not use this
