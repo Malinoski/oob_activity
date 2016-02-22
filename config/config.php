@@ -9,5 +9,5 @@ $ACTIVITY_CONFIG = array (
   'db_host' => 'localhost',
   'db_user' => 'username',
   'db_password' => 'password',
-  'db_name' => 'owncloud_logactivity_db',
+  'db_name' => 'owncloud_activity_db',
 );

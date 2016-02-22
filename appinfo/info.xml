@@ -3,11 +3,12 @@
 	<id>activity</id>
 	<name>oob Activity</name>
 	<description>
-		This application enables users to view actions related to their files in ownCloud. Once enabled, users will see a new icon “Activity” in their apps menu. When clicked, a new page appears for users to track the activity related to files – from new files, to deleted files, move, rename, updates and shared activity. The user can configure their individual activity settings in their personal menu. This sets the type of activity to record, as well as whether to the user sees their own activities, whether these are only available online, and whether they get an email digest on a regular basis. More information is available in the Activity documentation.
+		The oob_activity app modifies the original app activity(https://github.com/owncloud/activity) version 1.1.23,  provided for ownCloud.
+		More information is available in https://github.com/Malinoski/oob_activity/edit/master/README.md
 	</description>
-	<licence>AGPL</licence>
-	<author>Frank Karlitschek</author>
-	<shipped>true</shipped>
+	<licence></licence>
+	<author>Malinoski</author>
+	<shipped>false</shipped>
 	<default_enable/>
 	<require>4.9</require>
 	<types>
