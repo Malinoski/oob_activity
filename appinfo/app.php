@@ -26,9 +26,11 @@ use Doctrine\Common\Collections\Expr\Value;
 require_once 'apps/activity/lib/db/ActivityDBHelper.php';
 require_once 'apps/activity/lib/log/ActivityLogger.php';
 require_once 'apps/activity/config/config.php';
+//require_once 'apps/activity/service/logservice.php';
 
 //load log file configuration from /activity/config/config.php
-OCP\Config::setAppValue('activity', 'activityLog', $ACTIVITY_CONFIG['activityLog']);
+//OCP\Config::setAppValue('activity', 'activityLog', $ACTIVITY_CONFIG['activityLog']);
+OCP\Config::setAppValue('activity', 'logType', $ACTIVITY_CONFIG['logType']);
 
 //load database configuration from /activity/config/config.php
 // OCP\Config::setAppValue('activity', 'activityDb', $ACTIVITY_CONFIG['activityDb']);

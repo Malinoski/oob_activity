@@ -133,8 +133,10 @@ class Data
 	
 		
 		// store in log
-		$activityLog = Config::getAppValue('activity', 'activityLog');
-		if($activityLog === 'true'){
+		// $activityLog = Config::getAppValue('activity', 'activityLog');
+		$logType = Config::getAppValue('activity', 'logType');
+		//if($activityLog === 'true'){
+		if($logType === 'syslog'){
 			$arrayMessage = array(
 					'app'=> $app,
 					'subject' => $subject,
@@ -149,12 +151,13 @@ class Data
 					'priority' => $prio,
 					'type' => $type);
 			ActivityLogger::registerLog($arrayMessage);
+		} elseif ($logType === 'database'){
+			// store in DB
+			$query = DB::prepare('INSERT INTO `*PREFIX*activity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
+			$query->execute(array($app, $subject, serialize($subjectparams), $message, serialize($messageparams), $file, $link, $user, $auser, $timestamp, $prio, $type));
+		} else {
+			return true;
 		}
-		
-		
-		// store in DB
-		$query = DB::prepare('INSERT INTO `*PREFIX*activity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
-		$query->execute(array($app, $subject, serialize($subjectparams), $message, serialize($messageparams), $file, $link, $user, $auser, $timestamp, $prio, $type));
 		
 		// fire a hook so that other apps like notification systems can connect
 		Util::emitHook('OC_Activity', 'post_event', array('app' => $app, 'subject' => $subject, 'user' => $user, 'affecteduser' => $affecteduser, 'message' => $message, 'file' => $file, 'link'=> $link, 'prio' => $prio, 'type' => $type));
@@ -178,8 +181,10 @@ class Data
 
 
 		// store in log
-		$activityLog = Config::getAppValue('activity', 'activityLog');
-		if($activityLog === 'true'){
+		//$activityLog = Config::getAppValue('activity', 'activityLog');
+		$logType = Config::getAppValue('activity', 'logType');
+		//if($activityLog === 'true'){
+		if($logType === 'syslog'){
  			// store in log
  			$arrayMessage = array(
  				'amq_appid' => $app,
@@ -191,22 +196,25 @@ class Data
  				'amq_latest_send' => $latestSendTime				
  			);				
  			LogActivity::ActivityLogger($arrayMessage);
-		}
+ 		} elseif ($logType === 'database'){
 		
-		// store in DB
-		$query = DB::prepare('INSERT INTO `*PREFIX*activity_mq` '
-			. ' (`amq_appid`, `amq_subject`, `amq_subjectparams`, `amq_affecteduser`, `amq_timestamp`, `amq_type`, `amq_latest_send`) '
-			. ' VALUES(?, ?, ?, ?, ?, ?, ?)');
-		$query->execute(array(
-			$app,
-			$subject,
-			serialize($subjectParams),
-			$affectedUser,
-			$timestamp,
-			$type,
-			$latestSendTime,
-		));
-
+			// store in DB
+			$query = DB::prepare('INSERT INTO `*PREFIX*activity_mq` '
+				. ' (`amq_appid`, `amq_subject`, `amq_subjectparams`, `amq_affecteduser`, `amq_timestamp`, `amq_type`, `amq_latest_send`) '
+				. ' VALUES(?, ?, ?, ?, ?, ?, ?)');
+			$query->execute(array(
+				$app,
+				$subject,
+				serialize($subjectParams),
+				$affectedUser,
+				$timestamp,
+				$type,
+				$latestSendTime,
+			));
+ 		} else {
+ 			return true;
+ 		}
+ 		
 		// fire a hook so that other apps like notification systems can connect
 		Util::emitHook('OC_Activity', 'post_email', array(
 			'app'			=> $app,

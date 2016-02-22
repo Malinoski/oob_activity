@@ -1,18 +1,23 @@
-# ownCloud Activity App For External ("Out-Of-Band") Database
+# Out-Of-Band ownCloud Activity 
 
 ## Description
-The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity) version 1.1.23,  provided for ownCloud, to use its own external ("out-of-band") database for activity data. The oob_activity app was only tested for ownCloud 7.0.4 and PostgreSQL 9.3.6.
+The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity) version 1.1.23,  provided for ownCloud, 
+to regiter user activity in external storage, such as external database or syslog (default). 
+The oob_activity app was only tested in Ubuntu 14.04, ownCloud 7.0.4 and PostgreSQL 9.3.6.
 
 ## Releases
 
-[v1.2](https://github.com/Malinoski/oob_activity/releases/tag/v1.2)
+v1.2.1 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.2.1)
+- The external storage was configured to use database or syslog ([owncloud home]/apps/activity/config/config.xml).
+
+v1.2 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.2)
 - Enhanced the feature for user activity in syslog. This feature can be enable or disable in configuration file ([owncloud home]/apps/activity/config/config.xml).
 
-[v1.1](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
+v1.1 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.1)
 - Added the configuration file [owncloud home]/apps/activity/config/config.xml.
 - Added the feature to register user activity in log files optionally through configuration file.
 
-[v1.0](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
+v1.0 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 - First version.
 
 ## Instalation

@@ -3,6 +3,7 @@
 namespace OCA\Activity;
 
 use OCP\Config;
+
 //use OCP\ILogger;
 //use OC\Log;
 //use Psr\Log\AbstractLogger;
@@ -66,11 +67,25 @@ class ActivityLogger {
 			$messageSD = $messageSD . "]";
 			
 			//Using a specific program
-			// $app = 'oobactivity';
-			// openlog($app, LOG_PID | LOG_CONS, LOG_USER);
+			//openlog('ownCloud', LOG_PID | LOG_CONS, LOG_USER);
+			//openlog('myapplication', LOG_NDELAY, LOG_USER);
+			//openlog('php', LOG_CONS | LOG_NDELAY | LOG_PID, LOG_USER | LOG_PERROR);
+			//$app = 'oobactivity';
+			//openlog($app, LOG_PID | LOG_CONS, LOG_USER);			
 
 			//Write log
-			syslog(LOG_SYSLOG,'{app-oobactivity} '.$messageSD );
+			syslog(LOG_INFO,'{oobactivity} '.$messageSD );
+			
+			//testing PSR		
+			
+// 			$f = new Foo();
+// 			$f->doSomething();
+// 			$l = new Logg 
+			//\OCA\Activity\Service\LogActivityService::log("oi");
+			
+// 			LogActivityService::log("oooooooi");
+			//$this->logme("oi");
+			
 			// closelog();
 		}
 	}

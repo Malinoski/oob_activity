@@ -1,11 +1,11 @@
 <?php
 $ACTIVITY_CONFIG = array (
 		
-  //log file configuration
-  'activityLog' => 'true', // true|false - Enable or disable this feature
+  //Log configuration
+  //'activityLog' => 'true', // true|false - Enable or disable this feature
+  'logType' => 'syslog', // Type 'syslog' or 'database'
 		
-  //database configuration
-  //'activityDb' => 'false', // Do not use this
+  //Database configuration
   'db_host' => 'localhost',
   'db_user' => 'username',
   'db_password' => 'password',

@@ -1,6 +1,9 @@
 <?php
 use \OCP\DB;
+use \OCP\Config;
 use Assetic\Exception\Exception;
+
+
 require_once 'apps/activity/lib/db/private/db.php';
 
 define('ROOT', realpath(dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR));
@@ -45,20 +48,24 @@ class ActivityDBHelper{
 // 	}
 	
 	public static function prepareApp(){
-		//ActivityDBHelper::newActiviteLog('Activity INFO: preparing App!');
-		try{
-			//Create external activity table
-			if(ACTIVITY_DB::connect()){// check connection...
-				if(!ACTIVITY_DB::tableExists('activity')){	//check if the table exists...				
-					ActivityDBHelper::newActiviteLog('Activity INFO: Creating external tables for the new activity...');
-					ACTIVITY_DB::createDbFromStructure(__DIR__.'/../../appinfo/databaseNewActivity.xml'); // file name renamed for total control
-					ActivityDBHelper::newActiviteLog('Activity INFO: The external tables for the new activity, were created successfully!');					
+		
+		$logType = Config::getAppValue('activity', 'logType');
+		if($logType === 'database'){
+			//ActivityDBHelper::newActiviteLog('Activity INFO: preparing App!');
+			try{
+				//Create external activity table
+				if(ACTIVITY_DB::connect()){// check connection...
+					if(!ACTIVITY_DB::tableExists('activity')){	//check if the table exists...				
+						ActivityDBHelper::newActiviteLog('Activity INFO: Creating external tables for the new activity...');
+						ACTIVITY_DB::createDbFromStructure(__DIR__.'/../../appinfo/databaseNewActivity.xml'); // file name renamed for total control
+						ActivityDBHelper::newActiviteLog('Activity INFO: The external tables for the new activity, were created successfully!');					
+					}
 				}
+				return false;			
+			}catch (Exception $ex){
+				ActivityDBHelper::newActiviteLog('ERROR: An error occurred with external table activity!'.$ex->getMessage());
+				return false;
 			}
-			return false;			
-		}catch (Exception $ex){
-			ActivityDBHelper::newActiviteLog('ERROR: An error occurred with external table activity!'.$ex->getMessage());
-			return false;
 		}
 		// ActivityDBHelper::newActiviteLog('Activity INFO: New activity prepared!');
 	}
