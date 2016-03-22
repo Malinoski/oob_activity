@@ -56,16 +56,16 @@ This section shows how to install oob_activity v1.3 (for old releases check the 
 
 1. Backup your ownCloud and database servers.
 
-2. Get and configure oob_activity:
-  * Download and extract the last oob_activity reseale.
-  * Rename the extracted folder to "oob_activity".
-  * Move "activity" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
-  * Grant privilegies to the oob_activity "activity" folder.
-<br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/activity`).
+2. Get and configure:
+  * Download and extract the last release.
+  * Rename the extracted folder to "oobactivity".
+  * Move "oobactivity" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
+  * Grant privilegies to "oobactivity" folder.
+<br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/oobactivity`).
 
 3. Configure your ownCloud server:
   * Login as administrator in your ownCloud server (ex.: http://[localhost]/[owncloud])
-  * Activate the oob_activity app. (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
+  * Activate the oobactivity app. (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
 
 ## Acknowledgements
 This development has been funded by [FINEP](http://www.finep.gov.br), the Brazilian Innovation Agency.
