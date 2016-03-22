@@ -22,7 +22,7 @@ User activity types:
 
 ## Download
 
-v1.3 [download]
+v1.3 [download](https://github.com/Malinoski/oob_activity/releases/tag/oob_activity-v1.3)
 - owncloud version: 8.0.5
 - Notes:
 	- syslog register enhanced
