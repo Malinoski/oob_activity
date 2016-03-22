@@ -52,7 +52,7 @@ v1.0 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 
 ## Install
 
-This section shows how to isntall oob_activity 1.3 (for old releases check the respective README.txt)
+This section shows how to install oob_activity v1.3 (for old releases check the respective README.txt).
 
 1. Backup your ownCloud and database servers.
 
