@@ -2,7 +2,7 @@
 
 ## Description
 The oob_activity app modifies the original app [activity](https://github.com/owncloud/activity),  provided for ownCloud. 
-oob_activity allow to register user activity in external storage database or syslog.
+oob_activity allow to register user activity in syslog.
 The oob_activity app was only tested in Ubuntu 14.04 and PostgreSQL 9.3.6.
 
 User activity types:
