@@ -23,6 +23,9 @@
 
 namespace OCA\Ooba\AppInfo;
 
+require_once 'apps/ooba/extension_ooba/activitydata.php';
+require_once 'apps/ooba/extension_ooba/activitylogger.php';
+
 $app = new Application();
 $c = $app->getContainer();
 

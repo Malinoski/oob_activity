@@ -27,7 +27,8 @@ use OCA\Ooba\Consumer;
 use OCA\Ooba\Controller\Oobas;
 use OCA\Ooba\Controller\Feed;
 use OCA\Ooba\Controller\Settings;
-use OCA\Ooba\Data;
+//use OCA\Ooba\Data; // original
+use OCA\Ooba\ActivityData; //ooba
 use OCA\Ooba\DataHelper;
 use OCA\Ooba\GroupHelper;
 use OCA\Ooba\FilesHooks;
@@ -49,7 +50,8 @@ class Application extends App {
 		$container->registerService('OobaData', function(IContainer $c) {
 			/** @var \OC\Server $server */
 			$server = $c->query('ServerContainer');
-			return new Data(
+			//return new Data( //original
+			return new ActivityData( // ooba
 				$server->getActivityManager(),
 				$server->getDatabaseConnection(),
 				$server->getUserSession()
