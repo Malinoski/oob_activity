@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,45 +20,46 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OCA\OobActivity\Data;
-use OCA\OobActivity\HooksStatic;
+use Doctrine\DBAL\Driver\Statement;
+use OCA\Ooba\Data;
+use OCA\Ooba\Hooks;
 use OCP\Activity\IExtension;
 
 class HooksDeleteUserTest extends TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$activities = array(
+		$oobas = array(
 			array('affectedUser' => 'delete', 'subject' => 'subject'),
 			array('affectedUser' => 'delete', 'subject' => 'subject2'),
 			array('affectedUser' => 'otherUser', 'subject' => 'subject'),
 			array('affectedUser' => 'otherUser', 'subject' => 'subject2'),
 		);
 
-		$queryActivity = \OCP\DB::prepare('INSERT INTO `*PREFIX*oobactivity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
-		$queryMailQueue = \OCP\DB::prepare('INSERT INTO `*PREFIX*oobactivity_mq`(`amq_appid`, `amq_subject`, `amq_subjectparams`, `amq_affecteduser`, `amq_timestamp`, `amq_type`, `amq_latest_send`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?)');
-		foreach ($activities as $activity) {
-			$queryActivity->execute(array(
+		$queryOoba = \OC::$server->getDatabaseConnection()->prepare('INSERT INTO `*PREFIX*ooba`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
+		$queryMailQueue = \OC::$server->getDatabaseConnection()->prepare('INSERT INTO `*PREFIX*ooba_mq`(`oobamq_appid`, `oobamq_subject`, `oobamq_subjectparams`, `oobamq_affecteduser`, `oobamq_timestamp`, `oobamq_type`, `oobamq_latest_send`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?)');
+		foreach ($oobas as $ooba) {
+			$queryOoba->execute(array(
 				'app',
-				$activity['subject'],
-				serialize(array()),
+				$ooba['subject'],
+				json_encode([]),
 				'',
-				serialize(array()),
+				json_encode([]),
 				'file',
 				'link',
 				'user',
-				$activity['affectedUser'],
+				$ooba['affectedUser'],
 				time(),
 				IExtension::PRIORITY_MEDIUM,
 				'test',
 			));
 			$queryMailQueue->execute(array(
 				'app',
-				$activity['subject'],
-				serialize(array()),
-				$activity['affectedUser'],
+				$ooba['subject'],
+				json_encode([]),
+				$ooba['affectedUser'],
 				time(),
 				'test',
 				time() + 10,
@@ -68,12 +69,14 @@ class HooksDeleteUserTest extends TestCase {
 
 	protected function tearDown() {
 		$data = new Data(
-			$this->getMock('\OCP\Activity\IManager')
+			$this->getMock('\OCP\Activity\IManager'),
+			\OC::$server->getDatabaseConnection(),
+			$this->getMock('\OCP\IUserSession')
 		);
-		$data->deleteActivities(array(
+		$data->deleteOobas(array(
 			'type' => 'test',
 		));
-		$query = \OCP\DB::prepare("DELETE FROM `*PREFIX*oobactivity_mq` WHERE `amq_type` = 'test'");
+		$query = \OC::$server->getDatabaseConnection()->prepare("DELETE FROM `*PREFIX*ooba_mq` WHERE `oobamq_type` = 'test'");
 		$query->execute();
 
 		parent::tearDown();
@@ -81,30 +84,31 @@ class HooksDeleteUserTest extends TestCase {
 
 	public function testHooksDeleteUser() {
 
-		$this->assertUserActivities(array('delete', 'otherUser'));
+		$this->assertUserOobas(array('delete', 'otherUser'));
 		$this->assertUserMailQueue(array('delete', 'otherUser'));
-		HooksStatic::deleteUser(array('uid' => 'delete'));
-		$this->assertUserActivities(array('otherUser'));
+		Hooks::deleteUser(array('uid' => 'delete'));
+		$this->assertUserOobas(array('otherUser'));
 		$this->assertUserMailQueue(array('otherUser'));
 	}
 
-	protected function assertUserActivities($expected) {
-		$query = \OCP\DB::prepare("SELECT `affecteduser` FROM `*PREFIX*oobactivity` WHERE `type` = 'test'");
+	protected function assertUserOobas($expected) {
+		$query = \OC::$server->getDatabaseConnection()->prepare("SELECT `affecteduser` FROM `*PREFIX*ooba` WHERE `type` = 'test'");
 		$this->assertTableKeys($expected, $query, 'affecteduser');
 	}
 
 	protected function assertUserMailQueue($expected) {
-		$query = \OCP\DB::prepare("SELECT `amq_affecteduser` FROM `*PREFIX*oobactivity_mq` WHERE `amq_type` = 'test'");
-		$this->assertTableKeys($expected, $query, 'amq_affecteduser');
+		$query = \OC::$server->getDatabaseConnection()->prepare("SELECT `oobamq_affecteduser` FROM `*PREFIX*ooba_mq` WHERE `oobamq_type` = 'test'");
+		$this->assertTableKeys($expected, $query, 'oobamq_affecteduser');
 	}
 
-	protected function assertTableKeys($expected, \OC_DB_StatementWrapper $query, $keyName) {
-		$result = $query->execute();
+	protected function assertTableKeys($expected, Statement $query, $keyName) {
+		$query->execute();
 
 		$users = array();
-		while ($row = $result->fetchRow()) {
+		while ($row = $query->fetch()) {
 			$users[] = $row[$keyName];
 		}
+		$query->closeCursor();
 		$users = array_unique($users);
 		sort($users);
 		sort($expected);

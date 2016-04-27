@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,38 +21,85 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
+use OC\Share\Helper;
 use OCP\Activity\IManager;
+use OCP\Contacts\IManager as IContactsManager;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\User;
+use OCP\IURLGenerator;
+use OCP\IUserManager;
 use OCP\Util;
 use OC\Files\View;
 
 class ParameterHelper {
 	/** @var \OCP\Activity\IManager */
-	protected $activityManager;
+	protected $oobaManager;
+
+	/** @var \OCP\IUserManager */
+	protected $userManager;
+
+	/** @var \OCP\Contacts\IManager */
+	protected $contactsManager;
 
 	/** @var \OC\Files\View */
 	protected $rootView;
 
-	/** @var \OC_L10N */
+	/** @var \OCP\IL10N */
 	protected $l;
 
 	/** @var \OCP\IConfig */
 	protected $config;
 
+	/** @var string */
+	protected $user;
+
+	/** @var \OCP\IURLGenerator */
+	protected $urlGenerator;
+
+	/** @var array */
+	protected $federatedContacts;
+
 	/**
-	 * @param IManager $activityManager
+	 * @param IManager $oobaManager
+	 * @param IUserManager $userManager
+	 * @param IURLGenerator $urlGenerator
+	 * @param IContactsManager $contactsManager
 	 * @param View $rootView
 	 * @param IConfig $config
-	 * @param \OC_L10N $l
+	 * @param IL10N $l
+	 * @param string $user
 	 */
-	public function __construct(IManager $activityManager, View $rootView, IConfig $config, \OC_L10N $l) {
-		$this->activityManager = $activityManager;
+	public function __construct(IManager $oobaManager,
+								IUserManager $userManager,
+								IURLGenerator $urlGenerator,
+								IContactsManager $contactsManager,
+								View $rootView,
+								IConfig $config,
+								IL10N $l,
+								$user) {
+		$this->oobaManager = $oobaManager;
+		$this->userManager = $userManager;
+		$this->urlGenerator = $urlGenerator;
+		$this->contactsManager = $contactsManager;
 		$this->rootView = $rootView;
 		$this->config = $config;
+		$this->l = $l;
+		$this->user = $user;
+	}
+
+	/**
+	 * @param string $user
+	 */
+	public function setUser($user) {
+		$this->user = (string) $user;
+	}
+
+	/**
+	 * @param IL10N $l
+	 */
+	public function setL10n(IL10N $l) {
 		$this->l = $l;
 	}
 
@@ -68,7 +115,7 @@ class ParameterHelper {
 		$preparedParams = array();
 		foreach ($params as $i => $param) {
 			if (is_array($param)) {
-				$preparedParams[] = $this->prepareArrayParameter($param, $paramTypes[$i], $stripPath, $highlightParams);
+				$preparedParams[] = $this->prepareArrayParameter($param, isset($paramTypes[$i]) ? $paramTypes[$i] : '', $stripPath, $highlightParams);
 			} else {
 				$preparedParams[] = $this->prepareStringParameter($param, isset($paramTypes[$i]) ? $paramTypes[$i] : '', $stripPath, $highlightParams);
 			}
@@ -90,6 +137,8 @@ class ParameterHelper {
 			return $this->prepareFileParam($param, $stripPath, $highlightParams);
 		} else if ($paramType === 'username') {
 			return $this->prepareUserParam($param, $highlightParams);
+		} else if ($paramType === 'federated_cloud_id') {
+			return $this->prepareFederatedCloudIDParam($param, $stripPath, $highlightParams);
 		}
 		return $this->prepareParam($param, $highlightParams);
 	}
@@ -106,13 +155,8 @@ class ParameterHelper {
 	public function prepareArrayParameter($params, $paramType, $stripPath, $highlightParams) {
 		$parameterList = $plainParameterList = array();
 		foreach ($params as $parameter) {
-			if ($paramType === 'file') {
-				$parameterList[] = $this->prepareFileParam($parameter, $stripPath, $highlightParams);
-				$plainParameterList[] = $this->prepareFileParam($parameter, false, false);
-			} else {
-				$parameterList[] = $this->prepareParam($parameter, $highlightParams);
-				$plainParameterList[] = $this->prepareParam($parameter, false);
-			}
+			$parameterList[] = $this->prepareStringParameter($parameter, $paramType, $stripPath, $highlightParams);
+			$plainParameterList[] = $this->prepareStringParameter($parameter, $paramType, false, false);
 		}
 		return $this->joinParameterList($parameterList, $plainParameterList, $highlightParams);
 	}
@@ -152,19 +196,84 @@ class ParameterHelper {
 			}
 		}
 
-		$displayName = User::getDisplayName($param);
+		$user = $this->userManager->get($param);
+		$displayName = ($user) ? $user->getDisplayName() : $param;
 		$param = Util::sanitizeHTML($param);
-		$displayName = Util::sanitizeHTML($displayName);
 
 		if ($highlightParams) {
 			$avatarPlaceholder = '';
 			if ($this->config->getSystemValue('enable_avatars', true)) {
 				$avatarPlaceholder = '<div class="avatar" data-user="' . $param . '"></div>';
 			}
-			return $avatarPlaceholder . '<strong>' . $displayName . '</strong>';
+			return $avatarPlaceholder . '<strong>' . Util::sanitizeHTML($displayName) . '</strong>';
 		} else {
 			return $displayName;
 		}
+	}
+
+	/**
+	 * Prepares a federated cloud id parameter for usage
+	 *
+	 * Search in contacts and do not output the remote in html
+	 *
+	 * @param string $federatedCloudId
+	 * @param bool $stripRemote Shall we remove the remote
+	 * @param bool $highlightParams
+	 * @return string
+	 */
+	protected function prepareFederatedCloudIDParam($federatedCloudId, $stripRemote, $highlightParams) {
+		$displayName = $federatedCloudId;
+		if ($stripRemote) {
+			try {
+				list($user,) = Helper::splitUserRemote($federatedCloudId);
+				$displayName = $user . '@…';
+			} catch (\OC\HintException $e) {}
+		}
+
+		try {
+			$displayName = $this->getDisplayNameFromContact($federatedCloudId);
+		} catch (\OutOfBoundsException $e) {}
+
+
+		if ($highlightParams) {
+			$title = ' title="' . Util::sanitizeHTML($federatedCloudId) . '"';
+			return '<strong class="has-tooltip"' . $title . '>' . Util::sanitizeHTML($displayName) . '</strong>';
+		} else {
+			return $displayName;
+		}
+	}
+
+	/**
+	 * Try to find the user in the contacts
+	 *
+	 * @param string $federatedCloudId
+	 * @return string
+	 * @throws \OutOfBoundsException when there is no contact for the id
+	 */
+	protected function getDisplayNameFromContact($federatedCloudId) {
+		$federatedCloudId = strtolower($federatedCloudId);
+		if (isset($this->federatedContacts[$federatedCloudId])) {
+			if ($this->federatedContacts[$federatedCloudId] !== '') {
+				return $this->federatedContacts[$federatedCloudId];
+			} else {
+				throw new \OutOfBoundsException('No contact found for federated cloud id');
+			}
+		}
+
+		$addressBookEntries = $this->contactsManager->search($federatedCloudId, ['CLOUD']);
+		foreach ($addressBookEntries as $entry) {
+			if (isset($entry['CLOUD'])) {
+				foreach ($entry['CLOUD'] as $cloudID) {
+					if ($cloudID === $federatedCloudId) {
+						$this->federatedContacts[$federatedCloudId] = $entry['FN'];
+						return $entry['FN'];
+					}
+				}
+			}
+		}
+
+		$this->federatedContacts[$federatedCloudId] = '';
+		throw new \OutOfBoundsException('No contact found for federated cloud id');
 	}
 
 	/**
@@ -179,18 +288,19 @@ class ParameterHelper {
 	 */
 	protected function prepareFileParam($param, $stripPath, $highlightParams) {
 		$param = $this->fixLegacyFilename($param);
-		$is_dir = $this->rootView->is_dir('/' . User::getUser() . '/files' . $param);
+		$is_dir = $this->rootView->is_dir('/' . $this->user . '/files' . $param);
 
 		if ($is_dir) {
-			$fileLink = Util::linkTo('files', 'index.php', array('dir' => $param));
+			$linkData = ['dir' => $param];
 		} else {
-			$parentDir = (substr_count($param, '/') == 1) ? '/' : dirname($param);
+			$parentDir = (substr_count($param, '/') === 1) ? '/' : dirname($param);
 			$fileName = basename($param);
-			$fileLink = Util::linkTo('files', 'index.php', array(
+			$linkData = [
 				'dir' => $parentDir,
 				'scrollto' => $fileName,
-			));
+			];
 		}
+		$fileLink = $this->urlGenerator->linkTo('files', 'index.php', $linkData);
 
 		$param = trim($param, '/');
 		list($path, $name) = $this->splitPathFromFilename($param);
@@ -206,11 +316,11 @@ class ParameterHelper {
 		}
 
 		$title = ' title="' . $this->l->t('in %s', array(Util::sanitizeHTML($path))) . '"';
-		return '<a class="filename tooltip" href="' . $fileLink . '"' . $title . '>' . Util::sanitizeHTML($name) . '</a>';
+		return '<a class="filename has-tooltip" href="' . $fileLink . '"' . $title . '>' . Util::sanitizeHTML($name) . '</a>';
 	}
 
 	/**
-	 * Prepend leading slash to filenames of legacy activities
+	 * Prepend leading slash to filenames of legacy oobas
 	 * @param string $filename
 	 * @return string
 	 */
@@ -260,11 +370,11 @@ class ParameterHelper {
 		$count = sizeof($parameterList);
 		$lastItem = array_pop($parameterList);
 
-		if ($count == 1)
+		if ($count === 1)
 		{
 			return $lastItem;
 		}
-		else if ($count == 2)
+		else if ($count === 2)
 		{
 			$firstItem = array_pop($parameterList);
 			return $this->l->t('%s and %s', array($firstItem, $lastItem));
@@ -281,10 +391,10 @@ class ParameterHelper {
 		$trimmedList = implode($this->l->t(', '), $trimmedParams);
 		if ($highlightParams) {
 			return $this->l->n(
-				'%s and <strong class="tooltip" title="%s">%n more</strong>',
-				'%s and <strong class="tooltip" title="%s">%n more</strong>',
+				'%s and <strong %s>%n more</strong>',
+				'%s and <strong %s>%n more</strong>',
 				$count - 3,
-				array($firstList, Util::sanitizeHTML($trimmedList)));
+				array($firstList, 'class="has-tooltip" title="' . Util::sanitizeHTML($trimmedList) . '"'));
 		}
 		return $this->l->n('%s and %n more', '%s and %n more', $count - 3, array($firstList));
 	}
@@ -297,14 +407,7 @@ class ParameterHelper {
 	 * @return array
 	 */
 	public function getSpecialParameterList($app, $text) {
-		if ($app === 'files' && $text === 'shared_group_self') {
-			return array(0 => 'file');
-		}
-		else if ($app === 'files') {
-			return array(0 => 'file', 1 => 'username');
-		}
-
-		$specialParameters = $this->activityManager->getSpecialParameterList($app, $text);
+		$specialParameters = $this->oobaManager->getSpecialParameterList($app, $text);
 
 		if ($specialParameters !== false) {
 			return $specialParameters;

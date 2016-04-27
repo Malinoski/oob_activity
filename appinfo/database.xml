@@ -5,10 +5,10 @@
 	<overwrite>false</overwrite>
 	<charset>utf8</charset>
 	<table>
-		<name>*dbprefix*oobactivity</name>
+		<name>*dbprefix*ooba</name>
 		<declaration>
 			<field>
-				<name>activity_id</name>
+				<name>ooba_id</name>
 				<type>integer</type>
 				<default>0</default>
 				<notnull>true</notnull>
@@ -32,13 +32,13 @@
 			<field>
 				<name>type</name>
 				<type>text</type>
-				<notnull>true</notnull>
+				<notnull>false</notnull>
 				<length>255</length>
 			</field>
 			<field>
 				<name>user</name>
 				<type>text</type>
-				<notnull>true</notnull>
+				<notnull>false</notnull>
 				<length>64</length>
 			</field>
 			<field>
@@ -63,7 +63,7 @@
 				<name>subjectparams</name>
 				<type>text</type>
 				<notnull>true</notnull>
-				<length>255</length>
+				<length>4000</length>
 			</field>
 			<field>
 				<name>message</name>
@@ -75,23 +75,36 @@
 				<name>messageparams</name>
 				<type>text</type>
 				<notnull>false</notnull>
-				<length>255</length>
+				<length>4000</length>
 			</field>
 			<field>
 				<name>file</name>
 				<type>text</type>
 				<notnull>false</notnull>
-				<length>255</length>
+				<length>4000</length>
 			</field>
 			<field>
 				<name>link</name>
 				<type>text</type>
 				<notnull>false</notnull>
+				<length>4000</length>
+			</field>
+			<field>
+				<name>object_type</name>
+				<type>text</type>
+				<notnull>false</notnull>
 				<length>255</length>
+			</field>
+			<field>
+				<name>object_id</name>
+				<type>integer</type>
+				<default>0</default>
+				<notnull>true</notnull>
+				<length>4</length>
 			</field>
 
 			<index>
-				<name>oob_activity_user_time</name>
+				<name>ooba_user_time</name>
 				<field>
 					<name>affecteduser</name>
 				</field>
@@ -102,7 +115,7 @@
 			</index>
 
 			<index>
-				<name>oob_activity_filter_by</name>
+				<name>ooba_filter_by</name>
 				<field>
 					<name>affecteduser</name>
 				</field>
@@ -116,7 +129,7 @@
 			</index>
 
 			<index>
-				<name>oob_activity_filter_app</name>
+				<name>ooba_filter_app</name>
 				<field>
 					<name>affecteduser</name>
 				</field>
@@ -131,7 +144,7 @@
 		</declaration>
 	</table>
 	<table>
-		<name>*dbprefix*oobactivity_mq</name>
+		<name>*dbprefix*ooba_mq</name>
 		<declaration>
 			<field>
 				<name>mail_id</name>
@@ -142,67 +155,67 @@
 				<length>4</length>
 			</field>
 			<field>
-				<name>amq_timestamp</name>
+				<name>oobamq_timestamp</name>
 				<type>integer</type>
 				<default>0</default>
 				<notnull>true</notnull>
 				<length>4</length>
 			</field>
 			<field>
-				<name>amq_latest_send</name>
+				<name>oobamq_latest_send</name>
 				<type>integer</type>
 				<default>0</default>
 				<notnull>true</notnull>
 				<length>4</length>
 			</field>
 			<field>
-				<name>amq_type</name>
+				<name>oobamq_type</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>255</length>
 			</field>
 			<field>
-				<name>amq_affecteduser</name>
+				<name>oobamq_affecteduser</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>64</length>
 			</field>
 			<field>
-				<name>amq_appid</name>
+				<name>oobamq_appid</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>255</length>
 			</field>
 			<field>
-				<name>amq_subject</name>
+				<name>oobamq_subject</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>255</length>
 			</field>
 			<field>
-				<name>amq_subjectparams</name>
+				<name>oobamq_subjectparams</name>
 				<type>text</type>
 				<notnull>true</notnull>
-				<length>255</length>
+				<length>4000</length>
 			</field>
 
 			<index>
-				<name>oob_amp_user</name>
+				<name>oobamp_user</name>
 				<field>
-					<name>amq_affecteduser</name>
+					<name>oobamq_affecteduser</name>
 					<sorting>ascending</sorting>
 				</field>
 			</index>
 			<index>
-				<name>oob_amp_latest_send_time</name>
+				<name>oobamp_latest_send_time</name>
 				<field>
-					<name>amq_latest_send</name>
+					<name>oobamq_latest_send</name>
 				</field>
 			</index>
 			<index>
-				<name>oob_amp_timestamp_time</name>
+				<name>oobamp_timestamp_time</name>
 				<field>
-					<name>amq_timestamp</name>
+					<name>oobamq_timestamp</name>
 				</field>
 			</index>
 		</declaration>

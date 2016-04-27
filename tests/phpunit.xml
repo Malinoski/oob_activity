@@ -6,18 +6,18 @@
 		 timeoutForMediumTests="900"
 		 timeoutForLargeTests="900"
 		>
-	<testsuite name='ownCloud - Activity App Tests'>
+	<testsuite name='ownCloud - Ooba App Tests'>
 		<directory suffix='test.php'>.</directory>
 	</testsuite>
 	<!-- filters for code coverage -->
 	<filter>
 		<whitelist>
-			<directory suffix=".php">../../activity</directory>
+			<directory suffix=".php">../../ooba</directory>
 			<exclude>
-				<directory suffix=".php">../../activity/l10n</directory>
-				<directory suffix=".php">../../activity/templates</directory>
-				<directory suffix=".php">../../activity/tests</directory>
-				<file>../../activity/appinfo/update.php</file>
+				<directory suffix=".php">../../ooba/l10n</directory>
+				<directory suffix=".php">../../ooba/templates</directory>
+				<directory suffix=".php">../../ooba/tests</directory>
+				<file>../../ooba/appinfo/update.php</file>
 			</exclude>
 		</whitelist>
 	</filter>

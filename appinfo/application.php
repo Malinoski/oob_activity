@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,44 +20,50 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\AppInfo;
+namespace OCA\Ooba\AppInfo;
 
 use OC\Files\View;
-use OCA\OobActivity\Consumer;
-use OCA\OobActivity\Controller\Activities;
-use OCA\OobActivity\Controller\Settings;
-//use OCA\OobActivity\Data;
-use OCA\OobActivity\ActivityData;
-use OCA\OobActivity\DataHelper;
-use OCA\OobActivity\GroupHelper;
-use OCA\OobActivity\Hooks;
-use OCA\OobActivity\Navigation;
-use OCA\OobActivity\ParameterHelper;
-use OCA\OobActivity\UserSettings;
+use OCA\Ooba\Consumer;
+use OCA\Ooba\Controller\Oobas;
+use OCA\Ooba\Controller\Feed;
+use OCA\Ooba\Controller\Settings;
+use OCA\Ooba\Data;
+use OCA\Ooba\DataHelper;
+use OCA\Ooba\GroupHelper;
+use OCA\Ooba\FilesHooks;
+use OCA\Ooba\MailQueueHandler;
+use OCA\Ooba\Navigation;
+use OCA\Ooba\ParameterHelper;
+use OCA\Ooba\UserSettings;
 use OCP\AppFramework\App;
 use OCP\IContainer;
 
 class Application extends App {
 	public function __construct (array $urlParams = array()) {
-		parent::__construct('oobactivity', $urlParams);
+		parent::__construct('ooba', $urlParams);
 		$container = $this->getContainer();
 
 		/**
-		 * Activity Services
+		 * Ooba Services
 		 */
-		$container->registerService('ActivityData', function(IContainer $c) {
-			return new ActivityData(
-				$c->query('ServerContainer')->query('ActivityManager')
+		$container->registerService('OobaData', function(IContainer $c) {
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+			return new Data(
+				$server->getActivityManager(),
+				$server->getDatabaseConnection(),
+				$server->getUserSession()
 			);
 		});
 
-		$container->registerService('ActivityL10N', function(IContainer $c) {
-			return $c->query('ServerContainer')->getL10N('oobactivity');
+		$container->registerService('OobaL10N', function(IContainer $c) {
+			return $c->query('ServerContainer')->getL10N('ooba');
 		});
 
 
 		$container->registerService('Consumer', function(IContainer $c) {
 			return new Consumer(
+				$c->query('OobaData'),
 				$c->query('UserSettings')
 			);
 		});
@@ -67,13 +73,17 @@ class Application extends App {
 			$server = $c->query('ServerContainer');
 			return new DataHelper(
 				$server->getActivityManager(),
-				new ParameterHelper (
+				new ParameterHelper(
 					$server->getActivityManager(),
+					$server->getUserManager(),
+					$server->getURLGenerator(),
+					$server->getContactsManager(),
 					new View(''),
 					$server->getConfig(),
-					$c->query('ActivityL10N')
+					$c->query('OobaL10N'),
+					$c->query('CurrentUID')
 				),
-				$c->query('ActivityL10N')
+				$c->query('OobaL10N')
 			);
 		});
 
@@ -85,23 +95,54 @@ class Application extends App {
 			);
 		});
 
+		$container->registerService('GroupHelperSingleEntries', function(IContainer $c) {
+			return new GroupHelper(
+				$c->query('ServerContainer')->getActivityManager(),
+				$c->query('DataHelper'),
+				false
+			);
+		});
+
 		$container->registerService('Hooks', function(IContainer $c) {
-			return new Hooks(
-				$c->query('ActivityData'),
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+
+			return new FilesHooks(
+				$server->getActivityManager(),
+				$c->query('OobaData'),
 				$c->query('UserSettings'),
+				$server->getGroupManager(),
+				new View(''),
+				$server->getDatabaseConnection(),
 				$c->query('CurrentUID')
+			);
+		});
+
+		$container->registerService('MailQueueHandler', function(IContainer $c) {
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+
+			return new MailQueueHandler(
+				$server->getDateTimeFormatter(),
+				$server->getDatabaseConnection(),
+				$c->query('DataHelper'),
+				$server->getMailer(),
+				$server->getURLGenerator(),
+				$server->getUserManager()
 			);
 		});
 
 		$container->registerService('Navigation', function(IContainer $c) {
 			/** @var \OC\Server $server */
 			$server = $c->query('ServerContainer');
-			$rssToken = ($c->query('CurrentUID') !== '') ? $server->getConfig()->getUserValue($c->query('CurrentUID'), 'oobactivity', 'rsstoken') : '';
+			$rssToken = ($c->query('CurrentUID') !== '') ? $server->getConfig()->getUserValue($c->query('CurrentUID'), 'ooba', 'rsstoken') : '';
 
 			return new Navigation(
-				$c->query('ActivityL10N'),
+				$c->query('OobaL10N'),
 				$server->getActivityManager(),
-				$c->query('URLGenerator'),
+				$server->getURLGenerator(),
+				$c->query('UserSettings'),
+				$c->query('CurrentUID'),
 				$rssToken
 			);
 		});
@@ -112,7 +153,7 @@ class Application extends App {
 			return new UserSettings(
 				$server->getActivityManager(),
 				$server->getConfig(),
-				$c->query('ActivityData')
+				$c->query('OobaData')
 			);
 		});
 
@@ -142,25 +183,51 @@ class Application extends App {
 
 			return new Settings(
 				$c->query('AppName'),
-				$c->query('Request'),
+				$server->getRequest(),
 				$server->getConfig(),
 				$server->getSecureRandom()->getMediumStrengthGenerator(),
-				$c->query('URLGenerator'),
-				$c->query('ActivityData'),
+				$server->getURLGenerator(),
+				$c->query('OobaData'),
 				$c->query('UserSettings'),
-				$c->query('ActivityL10N'),
+				$c->query('OobaL10N'),
 				$c->query('CurrentUID')
 			);
 		});
 
-		$container->registerService('ActivitiesController', function(IContainer $c) {
-			return new Activities(
+		$container->registerService('OobasController', function(IContainer $c) {
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+
+			return new Oobas(
 				$c->query('AppName'),
-				$c->query('Request'),
-				$c->query('ActivityData'),
+				$server->getRequest(),
+				$c->query('OobaData'),
 				$c->query('GroupHelper'),
 				$c->query('Navigation'),
 				$c->query('UserSettings'),
+				$server->getDateTimeFormatter(),
+				$server->getPreviewManager(),
+				$server->getURLGenerator(),
+				$server->getMimeTypeDetector(),
+				new View(''),
+				$c->query('CurrentUID')
+			);
+		});
+
+		$container->registerService('FeedController', function(IContainer $c) {
+			/** @var \OC\Server $server */
+			$server = $c->query('ServerContainer');
+
+			return new Feed(
+				$c->query('AppName'),
+				$server->getRequest(),
+				$c->query('OobaData'),
+				$c->query('GroupHelperSingleEntries'),
+				$c->query('UserSettings'),
+				$c->query('URLGenerator'),
+				$server->getActivityManager(),
+				$server->getL10NFactory(),
+				$server->getConfig(),
 				$c->query('CurrentUID')
 			);
 		});

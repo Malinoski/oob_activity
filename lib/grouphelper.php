@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,14 +21,15 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
-use \OCP\Activity\IManager;
+use OCP\Activity\IManager;
+use OCP\IL10N;
 
 class GroupHelper
 {
 	/** @var array */
-	protected $activities = array();
+	protected $oobas = array();
 
 	/** @var array */
 	protected $openGroup = array();
@@ -43,133 +44,155 @@ class GroupHelper
 	protected $allowGrouping;
 
 	/** @var \OCP\Activity\IManager */
-	protected $activityManager;
+	protected $oobaManager;
 
-	/** @var \OCA\OobActivity\DataHelper */
+	/** @var \OCA\Ooba\DataHelper */
 	protected $dataHelper;
 
 	/**
-	 * @param \OCP\Activity\IManager $activityManager
-	 * @param \OCA\OobActivity\DataHelper $dataHelper
+	 * @param \OCP\Activity\IManager $oobaManager
+	 * @param \OCA\Ooba\DataHelper $dataHelper
 	 * @param bool $allowGrouping
 	 */
-	public function __construct(IManager $activityManager, DataHelper $dataHelper, $allowGrouping) {
+	public function __construct(IManager $oobaManager, DataHelper $dataHelper, $allowGrouping) {
 		$this->allowGrouping = $allowGrouping;
 
-		$this->activityManager = $activityManager;
+		$this->oobaManager = $oobaManager;
 		$this->dataHelper = $dataHelper;
 	}
 
 	/**
-	 * Add an activity to the internal array
-	 *
-	 * @param array $activity
+	 * @param string $user
 	 */
-	public function addActivity($activity) {
-		$activity['subjectparams_array'] = unserialize($activity['subjectparams']);
-		if (!is_array($activity['subjectparams_array'])) {
-			$activity['subjectparams_array'] = array($activity['subjectparams_array']);
-		}
+	public function setUser($user) {
+		$this->dataHelper->setUser($user);
+	}
 
-		$activity['messageparams_array'] = unserialize($activity['messageparams']);
-		if (!is_array($activity['messageparams_array'])) {
-			$activity['messageparams_array'] = array($activity['messageparams_array']);
-		}
+	/**
+	 * @param IL10N $l
+	 */
+	public function setL10n(IL10N $l) {
+		$this->dataHelper->setL10n($l);
+	}
 
-		if (!$this->getGroupKey($activity)) {
+	/**
+	 * Add an ooba to the internal array
+	 *
+	 * @param array $ooba
+	 */
+	public function addOoba($ooba) {
+		$ooba['subjectparams_array'] = $this->dataHelper->getParameters($ooba['subjectparams']);
+		$ooba['messageparams_array'] = $this->dataHelper->getParameters($ooba['messageparams']);
+
+		$groupKey = $this->getGroupKey($ooba);
+		if ($groupKey === false) {
 			if (!empty($this->openGroup)) {
-				$this->activities[] = $this->openGroup;
+				$this->oobas[] = $this->openGroup;
 				$this->openGroup = array();
 				$this->groupKey = '';
 				$this->groupTime = 0;
 			}
-			$this->activities[] = $activity;
+			$this->oobas[] = $ooba;
 			return;
 		}
 
 		// Only group when the event has the same group key
 		// and the time difference is not bigger than 3 days.
-		if ($this->getGroupKey($activity) === $this->groupKey &&
-			abs($activity['timestamp'] - $this->groupTime) < (3 * 24 * 60 * 60)
+		if ($groupKey === $this->groupKey &&
+			abs($ooba['timestamp'] - $this->groupTime) < (3 * 24 * 60 * 60)
+			&& (!isset($this->openGroup['ooba_ids']) || sizeof($this->openGroup['ooba_ids']) <= 5)
 		) {
-			$parameter = $this->getGroupParameter($activity);
+			$parameter = $this->getGroupParameter($ooba);
 			if ($parameter !== false) {
 				if (!is_array($this->openGroup['subjectparams_array'][$parameter])) {
 					$this->openGroup['subjectparams_array'][$parameter] = array($this->openGroup['subjectparams_array'][$parameter]);
 				}
-				if (!isset($this->openGroup['activity_ids'])) {
-					$this->openGroup['activity_ids'] = array((int) $this->openGroup['activity_id']);
+				if (!isset($this->openGroup['ooba_ids'])) {
+					$this->openGroup['ooba_ids'] = [(int) $this->openGroup['ooba_id']];
+					$this->openGroup['files'] = [
+						(int) $this->openGroup['object_id'] => (string) $this->openGroup['file']
+					];
 				}
 
-				$this->openGroup['subjectparams_array'][$parameter][] = $activity['subjectparams_array'][$parameter];
+				$this->openGroup['subjectparams_array'][$parameter][] = $ooba['subjectparams_array'][$parameter];
 				$this->openGroup['subjectparams_array'][$parameter] = array_unique($this->openGroup['subjectparams_array'][$parameter]);
-				$this->openGroup['activity_ids'][] = (int) $activity['activity_id'];
+				$this->openGroup['ooba_ids'][] = (int) $ooba['ooba_id'];
+
+				$this->openGroup['files'][(int) $ooba['object_id']] = (string) $ooba['file'];
 			}
 		} else {
-			if (!empty($this->openGroup)) {
-				$this->activities[] = $this->openGroup;
-			}
+			$this->closeOpenGroup();
 
-			$this->groupKey = $this->getGroupKey($activity);
-			$this->groupTime = $activity['timestamp'];
-			$this->openGroup = $activity;
+			$this->groupKey = $groupKey;
+			$this->groupTime = $ooba['timestamp'];
+			$this->openGroup = $ooba;
 		}
 	}
 
 	/**
-	 * Get grouping key for an activity
-	 *
-	 * @param array $activity
-	 * @return false|string False, if grouping is not allowed, grouping key otherwise
+	 * Closes the currently open group and adds it to the list of oobas
 	 */
-	protected function getGroupKey($activity) {
-		if ($this->getGroupParameter($activity) === false) {
-			return false;
+	protected function closeOpenGroup() {
+		if (!empty($this->openGroup)) {
+			$this->oobas[] = $this->openGroup;
 		}
-		return $activity['app'] . '|' . $activity['user'] . '|' . $activity['subject'];
 	}
 
-	protected function getGroupParameter($activity) {
+	/**
+	 * Get grouping key for an ooba
+	 *
+	 * @param array $ooba
+	 * @return false|string False, if grouping is not allowed, grouping key otherwise
+	 */
+	protected function getGroupKey($ooba) {
+		if ($this->getGroupParameter($ooba) === false) {
+			return false;
+		}
+
+		// FIXME
+		// Non-local users are currently not distinguishable, so grouping them might
+		// remove the information how many different users performed the same action.
+		// So we do not group them anymore, until we found another solution.
+		if ($ooba['user'] === '') {
+			return false;
+		}
+
+		return $ooba['app'] . '|' . $ooba['user'] . '|' . $ooba['subject'] . '|' . $ooba['object_type'];
+	}
+
+	/**
+	 * Get the parameter which is the varying part
+	 *
+	 * @param array $ooba
+	 * @return bool|int False if the ooba should not be grouped, parameter position otherwise
+	 */
+	protected function getGroupParameter($ooba) {
 		if (!$this->allowGrouping) {
 			return false;
 		}
 
-		if ($activity['app'] === 'files') {
-			switch ($activity['subject']) {
-				case 'created_self':
-				case 'created_by':
-				case 'changed_self':
-				case 'changed_by':
-				case 'deleted_self':
-				case 'deleted_by':
-				case 'restored_self':
-				case 'restored_by':
-					return 0;
-			}
-		}
-
 		// Allow other apps to group their notifications
-		return $this->activityManager->getGroupParameter($activity);
+		return $this->oobaManager->getGroupParameter($ooba);
 	}
 
 	/**
-	 * Get the prepared activities
+	 * Get the prepared oobas
 	 *
-	 * @return array translated activities ready for use
+	 * @return array translated oobas ready for use
 	 */
-	public function getActivities() {
-		if (!empty($this->openGroup)) {
-			$this->activities[] = $this->openGroup;
-		}
+	public function getOobas() {
+		$this->closeOpenGroup();
 
 		$return = array();
-		foreach ($this->activities as $activity) {
-			$activity = $this->dataHelper->formatStrings($activity, 'subject');
-			$activity = $this->dataHelper->formatStrings($activity, 'message');
+		foreach ($this->oobas as $ooba) {
+			$this->oobaManager->setFormattingObject($ooba['object_type'], $ooba['object_id']);
+			$ooba = $this->dataHelper->formatStrings($ooba, 'subject');
+			$ooba = $this->dataHelper->formatStrings($ooba, 'message');
 
-			$activity['typeicon'] = $this->dataHelper->getTypeIcon($activity['type']);
-			$return[] = $activity;
+			$ooba['typeicon'] = $this->oobaManager->getTypeIcon($ooba['type']);
+			$return[] = $ooba;
 		}
+		$this->oobaManager->setFormattingObject('', 0);
 
 		return $return;
 	}

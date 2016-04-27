@@ -1,7 +1,7 @@
 <?php
 
 /**
-* ownCloud - Activity App
+* ownCloud - Ooba App
 *
 * @author Joas Schilling
 * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,10 +21,11 @@
 *
 */
 
-namespace OCA\OobActivity\Controller;
+namespace OCA\Ooba\Controller;
 
-use OCA\OobActivity\Data;
-use OCA\OobActivity\UserSettings;
+use OCA\Ooba\Data;
+use OCA\Ooba\UserSettings;
+use OCP\Activity\IExtension;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -44,10 +45,10 @@ class Settings extends Controller {
 	/** @var \OCP\IURLGenerator */
 	protected $urlGenerator;
 
-	/** @var \OCA\OobActivity\Data */
+	/** @var \OCA\Ooba\Data */
 	protected $data;
 
-	/** @var \OCA\OobActivity\UserSettings */
+	/** @var \OCA\Ooba\UserSettings */
 	protected $userSettings;
 
 	/** @var \OCP\IL10N */
@@ -69,7 +70,15 @@ class Settings extends Controller {
 	 * @param IL10N $l10n
 	 * @param string $user
 	 */
-	public function __construct($appName, IRequest $request, IConfig $config, ISecureRandom $random, IURLGenerator $urlGenerator, Data $data, UserSettings $userSettings, IL10N $l10n, $user) {
+	public function __construct($appName,
+								IRequest $request,
+								IConfig $config,
+								ISecureRandom $random,
+								IURLGenerator $urlGenerator,
+								Data $data,
+								UserSettings $userSettings,
+								IL10N $l10n,
+								$user) {
 		parent::__construct($appName, $request);
 		$this->config = $config;
 		$this->random = $random;
@@ -96,44 +105,42 @@ class Settings extends Controller {
 
 		foreach ($types as $type => $desc) {
 			$this->config->setUserValue(
-				$this->user, 'oobactivity',
+				$this->user, 'ooba',
 				'notify_email_' . $type,
 				$this->request->getParam($type . '_email', false)
 			);
 
 			$this->config->setUserValue(
-				$this->user, 'oobactivity',
+				$this->user, 'ooba',
 				'notify_stream_' . $type,
 				$this->request->getParam($type . '_stream', false)
 			);
 		}
 
 		$email_batch_time = 3600;
-		if ($notify_setting_batchtime == UserSettings::EMAIL_SEND_DAILY) {
+		if ($notify_setting_batchtime === UserSettings::EMAIL_SEND_DAILY) {
 			$email_batch_time = 3600 * 24;
-		}
-		if ($notify_setting_batchtime == UserSettings::EMAIL_SEND_WEEKLY) {
+		} else if ($notify_setting_batchtime === UserSettings::EMAIL_SEND_WEEKLY) {
 			$email_batch_time = 3600 * 24 * 7;
 		}
 
 		$this->config->setUserValue(
-			$this->user, 'oobactivity',
+			$this->user, 'ooba',
 			'notify_setting_batchtime',
 			$email_batch_time
 		);
 		$this->config->setUserValue(
-			$this->user, 'oobactivity',
+			$this->user, 'ooba',
 			'notify_setting_self',
 			$notify_setting_self
 		);
 		$this->config->setUserValue(
-			$this->user, 'oobactivity',
+			$this->user, 'ooba',
 			'notify_setting_selfemail',
 			$notify_setting_selfemail
 		);
 
 		return new DataResponse(array(
-			'status'	=>'success',
 			'data'		=> array(
 				'message'	=> (string) $this->l10n->t('Your settings have been updated.'),
 			),
@@ -149,30 +156,44 @@ class Settings extends Controller {
 	public function displayPanel() {
 		$types = $this->data->getNotificationTypes($this->l10n);
 
-		$activities = array();
+		$oobas = array();
 		foreach ($types as $type => $desc) {
-			$activities[$type] = array(
+			if (is_array($desc)) {
+				$methods = isset($desc['methods']) ? $desc['methods'] : [IExtension::METHOD_STREAM, IExtension::METHOD_MAIL];
+				$desc = isset($desc['desc']) ? $desc['desc'] : '';
+			} else {
+				$methods = [IExtension::METHOD_STREAM, IExtension::METHOD_MAIL];
+			}
+
+			$oobas[$type] = array(
 				'desc'		=> $desc,
-				'email'		=> $this->userSettings->getUserSetting($this->user, 'email', $type),
-				'stream'	=> $this->userSettings->getUserSetting($this->user, 'stream', $type),
+				IExtension::METHOD_MAIL		=> $this->userSettings->getUserSetting($this->user, 'email', $type),
+				IExtension::METHOD_STREAM	=> $this->userSettings->getUserSetting($this->user, 'stream', $type),
+				'methods'	=> $methods,
 			);
 		}
 
 		$settingBatchTime = UserSettings::EMAIL_SEND_HOURLY;
-		if ($this->userSettings->getUserSetting($this->user, 'setting', 'batchtime') == 3600 * 24 * 7) {
+		$currentSetting = (int) $this->userSettings->getUserSetting($this->user, 'setting', 'batchtime');
+		if ($currentSetting === 3600 * 24 * 7) {
 			$settingBatchTime = UserSettings::EMAIL_SEND_WEEKLY;
-		} else if ($this->userSettings->getUserSetting($this->user, 'setting', 'batchtime') == 3600 * 24) {
+		} else if ($currentSetting === 3600 * 24) {
 			$settingBatchTime = UserSettings::EMAIL_SEND_DAILY;
 		}
 
-		return new TemplateResponse('oobactivity', 'personal', [
-			'activities'		=> $activities,
-			'activity_email'	=> $this->config->getUserValue($this->user, 'settings', 'email', ''),
+		return new TemplateResponse('ooba', 'personal', [
+			'oobas'		=> $oobas,
+			'ooba_email'	=> $this->config->getUserValue($this->user, 'settings', 'email', ''),
 
 			'setting_batchtime'	=> $settingBatchTime,
 
 			'notify_self'		=> $this->userSettings->getUserSetting($this->user, 'setting', 'self'),
 			'notify_selfemail'	=> $this->userSettings->getUserSetting($this->user, 'setting', 'selfemail'),
+
+			'methods'			=> [
+				IExtension::METHOD_MAIL => $this->l10n->t('Mail'),
+				IExtension::METHOD_STREAM => $this->l10n->t('Stream'),
+			],
 		], '');
 	}
 
@@ -191,16 +212,15 @@ class Settings extends Controller {
 			// Check for collisions
 			while (!empty($conflicts)) {
 				$token = $this->random->generate(30);
-				$conflicts = $this->config->getUsersForUserValue('oobactivity', 'rsstoken', $token);
+				$conflicts = $this->config->getUsersForUserValue('ooba', 'rsstoken', $token);
 			}
 
-			$tokenUrl = $this->urlGenerator->linkToRouteAbsolute('activity.rss', array('token' => $token)); //FIXME
+			$tokenUrl = $this->urlGenerator->linkToRouteAbsolute('ooba.Feed.show', ['token' => $token]);
 		}
 
-		$this->config->setUserValue($this->user, 'oobactivity', 'rsstoken', $token);
+		$this->config->setUserValue($this->user, 'ooba', 'rsstoken', $token);
 
 		return new DataResponse(array(
-			'status'	=>'success',
 			'data'		=> array(
 				'message'	=> (string) $this->l10n->t('Your settings have been updated.'),
 				'rsslink'	=> $tokenUrl,

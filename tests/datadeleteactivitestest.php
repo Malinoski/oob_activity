@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,56 +20,59 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OCA\OobActivity\Data;
+use Doctrine\DBAL\Driver\Statement;
+use OCA\Ooba\Data;
 use OCP\Activity\IExtension;
 
-class DataDeleteActivitiesTest extends TestCase {
-	/** @var \OCA\OobActivity\Data */
+class DataDeleteOobasTest extends TestCase {
+	/** @var \OCA\Ooba\Data */
 	protected $data;
 
 	protected function setUp() {
 		parent::setUp();
 
-		$activities = array(
+		$oobas = array(
 			array('affectedUser' => 'delete', 'subject' => 'subject', 'time' => 0),
 			array('affectedUser' => 'delete', 'subject' => 'subject2', 'time' => time() - 2 * 365 * 24 * 3600),
 			array('affectedUser' => 'otherUser', 'subject' => 'subject', 'time' => time()),
 			array('affectedUser' => 'otherUser', 'subject' => 'subject2', 'time' => time()),
 		);
 
-		$queryActivity = \OCP\DB::prepare('INSERT INTO `*PREFIX*oobactivity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
-		foreach ($activities as $activity) {
-			$queryActivity->execute(array(
+		$queryOoba = \OC::$server->getDatabaseConnection()->prepare('INSERT INTO `*PREFIX*ooba`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
+		foreach ($oobas as $ooba) {
+			$queryOoba->execute(array(
 				'app',
-				$activity['subject'],
-				serialize(array()),
+				$ooba['subject'],
+				json_encode([]),
 				'',
-				serialize(array()),
+				json_encode([]),
 				'file',
 				'link',
 				'user',
-				$activity['affectedUser'],
-				$activity['time'],
+				$ooba['affectedUser'],
+				$ooba['time'],
 				IExtension::PRIORITY_MEDIUM,
 				'test',
 			));
 		}
 		$this->data = new Data(
-			$this->getMock('\OCP\Activity\IManager')
+			$this->getMock('\OCP\Activity\IManager'),
+			\OC::$server->getDatabaseConnection(),
+			$this->getMock('\OCP\IUserSession')
 		);
 	}
 
 	protected function tearDown() {
-		$this->data->deleteActivities(array(
+		$this->data->deleteOobas(array(
 			'type' => 'test',
 		));
 
 		parent::tearDown();
 	}
 
-	public function deleteActivitiesData() {
+	public function deleteOobasData() {
 		return array(
 			array(array('affecteduser' => 'delete'), array('otherUser')),
 			array(array('affecteduser' => array('delete', '=')), array('otherUser')),
@@ -79,34 +82,35 @@ class DataDeleteActivitiesTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider deleteActivitiesData
+	 * @dataProvider deleteOobasData
 	 */
-	public function testDeleteActivities($condition, $expected) {
-		$this->assertUserActivities(array('delete', 'otherUser'));
-		$this->data->deleteActivities($condition);
-		$this->assertUserActivities($expected);
+	public function testDeleteOobas($condition, $expected) {
+		$this->assertUserOobas(array('delete', 'otherUser'));
+		$this->data->deleteOobas($condition);
+		$this->assertUserOobas($expected);
 	}
 
-	public function testExpireActivities() {
-		$backgroundjob = new \OCA\OobActivity\BackgroundJob\ExpireActivities();
-		$this->assertUserActivities(array('delete', 'otherUser'));
+	public function testExpireOobas() {
+		$backgroundjob = new \OCA\Ooba\BackgroundJob\ExpireOobas();
+		$this->assertUserOobas(array('delete', 'otherUser'));
 		$jobList = $this->getMock('\OCP\BackgroundJob\IJobList');
 		$backgroundjob->execute($jobList);
-		$this->assertUserActivities(array('otherUser'));
+		$this->assertUserOobas(array('otherUser'));
 	}
 
-	protected function assertUserActivities($expected) {
-		$query = \OCP\DB::prepare("SELECT `affecteduser` FROM `*PREFIX*oobactivity` WHERE `type` = 'test'");
+	protected function assertUserOobas($expected) {
+		$query = \OC::$server->getDatabaseConnection()->prepare("SELECT `affecteduser` FROM `*PREFIX*ooba` WHERE `type` = 'test'");
 		$this->assertTableKeys($expected, $query, 'affecteduser');
 	}
 
-	protected function assertTableKeys($expected, \OC_DB_StatementWrapper $query, $keyName) {
-		$result = $query->execute();
+	protected function assertTableKeys($expected, Statement $query, $keyName) {
+		$query->execute();
 
 		$users = array();
-		while ($row = $result->fetchRow()) {
+		while ($row = $query->fetch()) {
 			$users[] = $row[$keyName];
 		}
+		$query->closeCursor();
 		$users = array_unique($users);
 		sort($users);
 		sort($expected);

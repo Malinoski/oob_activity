@@ -1,9 +1,10 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Frank Karlitschek
+ * @author Joas Schilling
  * @copyright 2013 Frank Karlitschek frank@owncloud.org
  *
  * This library is free software; you can redistribute it and/or
@@ -21,282 +22,248 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
+use OCP\Activity\IEvent;
 use OCP\Activity\IExtension;
-use OCP\DB;
-use OCP\User;
-use OCP\Util;
+use OCP\Activity\IManager;
+use OCP\IDBConnection;
+use OCP\IL10N;
+use OCP\IUser;
+use OCP\IUserSession;
 
 /**
- * @brief Class for managing the data in the activities
+ * @brief Class for managing the data in the oobas
  */
-class Data
-{
-	const TYPE_SHARED = 'shared';
-	const TYPE_SHARE_EXPIRED = 'share_expired';
-	const TYPE_SHARE_UNSHARED = 'share_unshared';
+class Data {
+	/** @var IManager */
+	protected $oobaManager;
 
-	const TYPE_SHARE_CREATED = 'file_created';
-	const TYPE_SHARE_CHANGED = 'file_changed';
-	const TYPE_SHARE_DELETED = 'file_deleted';
-	const TYPE_SHARE_RESHARED = 'file_reshared';
-	const TYPE_SHARE_RESTORED = 'file_restored';
+	/** @var IDBConnection */
+	protected $connection;
 
-	const TYPE_SHARE_DOWNLOADED = 'file_downloaded';
-	const TYPE_SHARE_UPLOADED = 'file_uploaded';
+	/** @var IUserSession */
+	protected $userSession;
 
-	const TYPE_STORAGE_QUOTA_90 = 'storage_quota_90';
-	const TYPE_STORAGE_FAILURE = 'storage_failure';
-
-	/** @var \OCP\Activity\IManager */
-	protected $activityManager;
-
-	public function __construct(\OCP\Activity\IManager $activityManager){
-		$this->activityManager = $activityManager;
+	/**
+	 * @param IManager $oobaManager
+	 * @param IDBConnection $connection
+	 * @param IUserSession $userSession
+	 */
+	public function __construct(IManager $oobaManager, IDBConnection $connection, IUserSession $userSession) {
+		$this->oobaManager = $oobaManager;
+		$this->connection = $connection;
+		$this->userSession = $userSession;
 	}
 
 	protected $notificationTypes = array();
 
 	/**
-	 * @param \OCP\IL10N $l
+	 * @param IL10N $l
 	 * @return array Array "stringID of the type" => "translated string description for the setting"
+	 * 				or Array "stringID of the type" => [
+	 * 					'desc' => "translated string description for the setting"
+	 * 					'methods' => [\OCP\Activity\IExtension::METHOD_*],
+	 * 				]
 	 */
-	public function getNotificationTypes(\OCP\IL10N $l) {
-		if (isset($this->notificationTypes[$l->getLanguageCode()]))
-		{
+	public function getNotificationTypes(IL10N $l) {
+		if (isset($this->notificationTypes[$l->getLanguageCode()])) {
 			return $this->notificationTypes[$l->getLanguageCode()];
 		}
 
-		$notificationTypes = array(
-			self::TYPE_SHARED => $l->t('A file or folder has been <strong>shared</strong>'),
-//			self::TYPE_SHARE_UNSHARED => $l->t('Previously shared file or folder has been <strong>unshared</strong>'),
-//			self::TYPE_SHARE_EXPIRED => $l->t('Expiration date of shared file or folder <strong>expired</strong>'),
-			self::TYPE_SHARE_CREATED => $l->t('A new file or folder has been <strong>created</strong>'),
-			self::TYPE_SHARE_CHANGED => $l->t('A file or folder has been <strong>changed</strong>'),
-			self::TYPE_SHARE_DELETED => $l->t('A file or folder has been <strong>deleted</strong>'),
-//			self::TYPE_SHARE_RESHARED => $l->t('A file or folder has been <strong>reshared</strong>'),
-			self::TYPE_SHARE_RESTORED => $l->t('A file or folder has been <strong>restored</strong>'),
-//			self::TYPE_SHARE_DOWNLOADED => $l->t('A file or folder shared via link has been <strong>downloaded</strong>'),
-//			self::TYPE_SHARE_UPLOADED => $l->t('A file has been <strong>uploaded</strong> into a folder shared via link'),
-//			self::TYPE_STORAGE_QUOTA_90 => $l->t('<strong>Storage usage</strong> is at 90%%'),
-//			self::TYPE_STORAGE_FAILURE => $l->t('An <strong>external storage</strong> has an error'),
-		);
-
-		// Allow other apps to add new notification types
-		$additionalNotificationTypes = $this->activityManager->getNotificationTypes($l->getLanguageCode());
-		$notificationTypes = array_merge($notificationTypes, $additionalNotificationTypes);
-
+		// Allow apps to add new notification types
+		$notificationTypes = $this->oobaManager->getNotificationTypes($l->getLanguageCode());
 		$this->notificationTypes[$l->getLanguageCode()] = $notificationTypes;
-
 		return $notificationTypes;
 	}
 
 	/**
-	 * Send an event into the activity stream
+	 * Send an event into the ooba stream
 	 *
-	 * @param string $app The app where this event is associated with
-	 * @param string $subject A short description of the event
-	 * @param array  $subjectparams Array with parameters that are filled in the subject
-	 * @param string $message A longer description of the event
-	 * @param array  $messageparams Array with parameters that are filled in the message
-	 * @param string $file The file including path where this event is associated with. (optional)
-	 * @param string $link A link where this event is associated with (optional)
-	 * @param string $affecteduser If empty the current user will be used
-	 * @param string $type Type of the notification
-	 * @param int    $prio Priority of the notification
+	 * @param IEvent $event
 	 * @return bool
 	 */
-	public static function send($app, $subject, $subjectparams = array(), $message = '', $messageparams = array(), $file = '', $link = '', $affecteduser = '', $type = '', $prio = IExtension::PRIORITY_MEDIUM) {
-		$timestamp = time();
-		$user = User::getUser();
-		
-		if ($affecteduser === '') {
-			$auser = $user;
-		} else {
-			$auser = $affecteduser;
+	public function send(IEvent $event) {
+		if ($event->getAffectedUser() === '' || $event->getAffectedUser() === null) {
+			return false;
 		}
 
 		// store in DB
-		$query = DB::prepare('INSERT INTO `*PREFIX*oobactivity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
-		$query->execute(array($app, $subject, serialize($subjectparams), $message, serialize($messageparams), $file, $link, $user, $auser, $timestamp, $prio, $type));
-
-		// fire a hook so that other apps like notification systems can connect
-		Util::emitHook('OC_Activity', 'post_event', array('app' => $app, 'subject' => $subject, 'user' => $user, 'affecteduser' => $affecteduser, 'message' => $message, 'file' => $file, 'link'=> $link, 'prio' => $prio, 'type' => $type));
+		$queryBuilder = $this->connection->getQueryBuilder();
+		$queryBuilder->insert('ooba')
+			->values([
+				'app' => $queryBuilder->createParameter('app'),
+				'subject' => $queryBuilder->createParameter('subject'),
+				'subjectparams' => $queryBuilder->createParameter('subjectparams'),
+				'message' => $queryBuilder->createParameter('message'),
+				'messageparams' => $queryBuilder->createParameter('messageparams'),
+				'file' => $queryBuilder->createParameter('object_name'),
+				'link' => $queryBuilder->createParameter('link'),
+				'user' => $queryBuilder->createParameter('user'),
+				'affecteduser' => $queryBuilder->createParameter('affecteduser'),
+				'timestamp' => $queryBuilder->createParameter('timestamp'),
+				'priority' => $queryBuilder->createParameter('priority'),
+				'type' => $queryBuilder->createParameter('type'),
+				'object_type' => $queryBuilder->createParameter('object_type'),
+				'object_id' => $queryBuilder->createParameter('object_id'),
+			])
+			->setParameters([
+				'app' => $event->getApp(),
+				'type' => $event->getType(),
+				'affecteduser' => $event->getAffectedUser(),
+				'user' => $event->getAuthor(),
+				'timestamp' => (int) $event->getTimestamp(),
+				'subject' => $event->getSubject(),
+				'subjectparams' => json_encode($event->getSubjectParameters()),
+				'message' => $event->getMessage(),
+				'messageparams' => json_encode($event->getMessageParameters()),
+				'priority' => IExtension::PRIORITY_MEDIUM,
+				'object_type' => $event->getObjectType(),
+				'object_id' => (int) $event->getObjectId(),
+				'object_name' => $event->getObjectName(),
+				'link' => $event->getLink(),
+			])
+			->execute();
 
 		return true;
 	}
 
 	/**
-	 * @brief Send an event into the activity stream
+	 * Send an event as email
 	 *
-	 * @param string $app The app where this event is associated with
-	 * @param string $subject A short description of the event
-	 * @param array  $subjectParams Array of parameters that are filled in the placeholders
-	 * @param string $affectedUser Name of the user we are sending the activity to
-	 * @param string $type Type of notification
-	 * @param int $latestSendTime Activity time() + batch setting of $affecteduser
+	 * @param IEvent $event
+	 * @param int    $latestSendTime Ooba $timestamp + batch setting of $affectedUser
 	 * @return bool
 	 */
-	public static function storeMail($app, $subject, array $subjectParams, $affectedUser, $type, $latestSendTime) {
-		$timestamp = time();
+	public function storeMail(IEvent $event, $latestSendTime) {
+		if ($event->getAffectedUser() === '' || $event->getAffectedUser() === null) {
+			return false;
+		}
 
 		// store in DB
-		$query = DB::prepare('INSERT INTO `*PREFIX*oobactivity_mq` '
-			. ' (`amq_appid`, `amq_subject`, `amq_subjectparams`, `amq_affecteduser`, `amq_timestamp`, `amq_type`, `amq_latest_send`) '
-			. ' VALUES(?, ?, ?, ?, ?, ?, ?)');
-		$query->execute(array(
-			$app,
-			$subject,
-			serialize($subjectParams),
-			$affectedUser,
-			$timestamp,
-			$type,
-			$latestSendTime,
-		));
-
-		// fire a hook so that other apps like notification systems can connect
-		Util::emitHook('OC_Activity', 'post_email', array(
-			'app'			=> $app,
-			'subject'		=> $subject,
-			'subjectparams'	=> $subjectParams,
-			'affecteduser'	=> $affectedUser,
-			'timestamp'		=> $timestamp,
-			'type'			=> $type,
-			'latest_send'	=> $latestSendTime,
-		));
+		$queryBuilder = $this->connection->getQueryBuilder();
+		$queryBuilder->insert('ooba_mq')
+			->values([
+				'oobamq_appid' => $queryBuilder->createParameter('app'),
+				'oobamq_subject' => $queryBuilder->createParameter('subject'),
+				'oobamq_subjectparams' => $queryBuilder->createParameter('subjectparams'),
+				'oobamq_affecteduser' => $queryBuilder->createParameter('affecteduser'),
+				'oobamq_timestamp' => $queryBuilder->createParameter('timestamp'),
+				'oobamq_type' => $queryBuilder->createParameter('type'),
+				'oobamq_latest_send' => $queryBuilder->createParameter('latest_send'),
+			])
+			->setParameters([
+				'app' => $event->getApp(),
+				'subject' => $event->getSubject(),
+				'subjectparams' => json_encode($event->getSubjectParameters()),
+				'affecteduser' => $event->getAffectedUser(),
+				'timestamp' => (int) $event->getTimestamp(),
+				'type' => $event->getType(),
+				'latest_send' => $latestSendTime,
+			])
+			->execute();
 
 		return true;
 	}
 
 	/**
-	 * Filter the activity types
-	 *
-	 * @param array $types
-	 * @param string $filter
-	 * @return array
-	 */
-	public function filterNotificationTypes($types, $filter) {
-		switch ($filter) {
-			case 'shares':
-				return array_intersect(array(
-					Data::TYPE_SHARED,
-				), $types);
-		}
-
-		// Allow other apps to add new notification types
-		return $this->activityManager->filterNotificationTypes($types, $filter);
-	}
-
-	/**
-	 * @brief Read a list of events from the activity stream
-	 * @param GroupHelper $groupHelper Allows activities to be grouped
+	 * @brief Read a list of events from the ooba stream
+	 * @param GroupHelper $groupHelper Allows oobas to be grouped
 	 * @param UserSettings $userSettings Gets the settings of the user
 	 * @param int $start The start entry
 	 * @param int $count The number of statements to read
-	 * @param string $filter Filter the activities
+	 * @param string $filter Filter the oobas
+	 * @param string $user User for whom we display the stream
+	 * @param string $objectType
+	 * @param int $objectId
 	 * @return array
 	 */
-	public function read(GroupHelper $groupHelper, UserSettings $userSettings, $start, $count, $filter = 'all') {
+	public function read(GroupHelper $groupHelper, UserSettings $userSettings, $start, $count, $filter = 'all', $user = '', $objectType = '', $objectId = 0) {
 		// get current user
-		$user = User::getUser();
-		$enabledNotifications = $userSettings->getNotificationTypes($user, 'stream');
-		$enabledNotifications = $this->filterNotificationTypes($enabledNotifications, $filter);
+		if ($user === '') {
+			$user = $this->userSession->getUser();
+			if ($user instanceof IUser) {
+				$user = $user->getUID();
+			} else {
+				// No user given and not logged in => no oobas
+				return [];
+			}
+		}
+		$groupHelper->setUser($user);
 
-		// We don't want to display any activities
-		if (empty($enabledNotifications)) {
+		$enabledNotifications = $userSettings->getNotificationTypes($user, 'stream');
+		$enabledNotifications = $this->oobaManager->filterNotificationTypes($enabledNotifications, $filter);
+		$parameters = array_unique($enabledNotifications);
+
+		// We don't want to display any oobas
+		if (empty($parameters)) {
 			return array();
 		}
 
-		$parameters = array($user);
-		$limitActivities = " AND `type` IN ('" . implode("','", $enabledNotifications) . "')";
+		$placeholders = implode(',', array_fill(0, sizeof($parameters), '?'));
+		$limitOobas = " AND `type` IN (" . $placeholders . ")";
+		array_unshift($parameters, $user);
 
 		if ($filter === 'self') {
-			$limitActivities .= ' AND `user` = ?';
+			$limitOobas .= ' AND `user` = ?';
 			$parameters[] = $user;
-		}
-		else if ($filter === 'by' || $filter === 'all' && !$userSettings->getUserSetting($user, 'setting', 'self')) {
-			$limitActivities .= ' AND `user` <> ?';
+		} else if ($filter === 'by' || $filter === 'all' && !$userSettings->getUserSetting($user, 'setting', 'self')) {
+			$limitOobas .= ' AND `user` <> ?';
 			$parameters[] = $user;
+		} else if ($filter === 'filter') {
+			if (!$userSettings->getUserSetting($user, 'setting', 'self')) {
+				$limitOobas .= ' AND `user` <> ?';
+				$parameters[] = $user;
+			}
+			$limitOobas .= ' AND `object_type` = ?';
+			$parameters[] = $objectType;
+			$limitOobas .= ' AND `object_id` = ?';
+			$parameters[] = $objectId;
 		}
-		else if ($filter !== 'all') {
-			switch ($filter) {
-				case 'files':
-					$limitActivities .= ' AND `app` = ?';
-					$parameters[] = 'files';
-				break;
 
-				default:
-					list($condition, $params) = $this->activityManager->getQueryForFilter($filter);
-					if (!is_null($condition)) {
-						$limitActivities .= ' ';
-						$limitActivities .= $condition;
-						if (is_array($params)) {
-							$parameters = array_merge($parameters, $params);
-						}
-					}
+		list($condition, $params) = $this->oobaManager->getQueryForFilter($filter);
+		if (!is_null($condition)) {
+			$limitOobas .= ' ';
+			$limitOobas .= $condition;
+			if (is_array($params)) {
+				$parameters = array_merge($parameters, $params);
 			}
 		}
 
-		// fetch from DB
-		$query = DB::prepare(
-			'SELECT * '
-			. ' FROM `*PREFIX*oobactivity` '
-			. ' WHERE `affecteduser` = ? ' . $limitActivities
-			. ' ORDER BY `timestamp` DESC',
-			$count, $start);
-		$result = $query->execute($parameters);
-
-		return $this->getActivitiesFromQueryResult($result, $groupHelper);
+		return $this->getOobas($count, $start, $limitOobas, $parameters, $groupHelper);
 	}
 
 	/**
-	 * Process the result and return the activities
+	 * Process the result and return the oobas
 	 *
-	 * @param \OC_DB_StatementWrapper|int $result
-	 * @param \OCA\OobActivity\GroupHelper $groupHelper
+	 * @param int $count
+	 * @param int $start
+	 * @param string $limitOobas
+	 * @param array $parameters
+	 * @param \OCA\Ooba\GroupHelper $groupHelper
 	 * @return array
 	 */
-	public function getActivitiesFromQueryResult($result, GroupHelper $groupHelper) {
-		if (DB::isError($result)) {
-			Util::writeLog('Activity', DB::getErrorMessage($result), Util::ERROR);
-		} else {
-			while ($row = $result->fetchRow()) {
-				$groupHelper->addActivity($row);
-			}
+	protected function getOobas($count, $start, $limitOobas, $parameters, GroupHelper $groupHelper) {
+		$query = $this->connection->prepare(
+			'SELECT * '
+			. ' FROM `*PREFIX*ooba` '
+			. ' WHERE `affecteduser` = ? ' . $limitOobas
+			. ' ORDER BY `timestamp` DESC',
+			$count, $start);
+		$query->execute($parameters);
+
+		while ($row = $query->fetch()) {
+			$groupHelper->addOoba($row);
 		}
+		$query->closeCursor();
 
-		return $groupHelper->getActivities();
-	}
-
-	/**
-	 * Get the casted page number from $_GET
-	 * @return int
-	 */
-	public function getPageFromParam() {
-		if (isset($_GET['page'])) {
-			return (int) $_GET['page'];
-		}
-
-		return 1;
-	}
-
-	/**
-	 * Get the filter from $_GET
-	 * @return string
-	 * @deprecated Use validateFilter() instead
-	 */
-	public function getFilterFromParam() {
-		if (!isset($_GET['filter']))
-			return 'all';
-
-		return $this->validateFilter($_GET['filter']);
+		return $groupHelper->getOobas();
 	}
 
 	/**
 	 * Verify that the filter is valid
 	 *
-	 * @param string $filter
+	 * @param string $filterValue
 	 * @return string
 	 */
 	public function validateFilter($filterValue) {
@@ -307,12 +274,11 @@ class Data
 		switch ($filterValue) {
 			case 'by':
 			case 'self':
-			case 'shares':
 			case 'all':
-			case 'files':
+			case 'filter':
 				return $filterValue;
 			default:
-				if ($this->activityManager->isFilterValid($filterValue)) {
+				if ($this->oobaManager->isFilterValid($filterValue)) {
 					return $filterValue;
 				}
 				return 'all';
@@ -329,20 +295,20 @@ class Data
 		$ttl = (60 * 60 * 24 * max(1, $expireDays));
 
 		$timelimit = time() - $ttl;
-		$this->deleteActivities(array(
+		$this->deleteOobas(array(
 			'timestamp' => array($timelimit, '<'),
 		));
 	}
 
 	/**
-	 * Delete activities that match certain conditions
+	 * Delete oobas that match certain conditions
 	 *
 	 * @param array $conditions Array with conditions that have to be met
 	 *                      'field' => 'value'  => `field` = 'value'
 	 *    'field' => array('value', 'operator') => `field` operator 'value'
 	 * @return null
 	 */
-	public function deleteActivities($conditions) {
+	public function deleteOobas($conditions) {
 		$sqlWhere = '';
 		$sqlParameters = $sqlWhereList = array();
 		foreach ($conditions as $column => $comparison) {
@@ -354,8 +320,8 @@ class Data
 			$sqlWhere = ' WHERE ' . implode(' AND ', $sqlWhereList);
 		}
 
-		$query = DB::prepare(
-			'DELETE FROM `*PREFIX*oobactivity`' . $sqlWhere);
+		$query = $this->connection->prepare(
+			'DELETE FROM `*PREFIX*ooba`' . $sqlWhere);
 		$query->execute($sqlParameters);
 	}
 }

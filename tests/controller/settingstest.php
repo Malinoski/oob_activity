@@ -11,10 +11,11 @@
  * See the COPYING-README file.
  */
 
-namespace OCA\OobActivity\Tests\Controller;
+namespace OCA\Ooba\Tests\Controller;
 
-use OCA\OobActivity\Controller\Settings;
-use OCA\OobActivity\Tests\TestCase;
+use OCA\Ooba\Controller\Settings;
+use OCA\Ooba\Tests\TestCase;
+use OCP\Activity\IExtension;
 
 class SettingsTest extends TestCase {
 	/** @var \PHPUnit_Framework_MockObject_MockObject */
@@ -44,10 +45,10 @@ class SettingsTest extends TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->data = $this->getMockBuilder('OCA\OobActivity\Data')
+		$this->data = $this->getMockBuilder('OCA\Ooba\Data')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->userSettings = $this->getMockBuilder('OCA\OobActivity\UserSettings')
+		$this->userSettings = $this->getMockBuilder('OCA\Ooba\UserSettings')
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -55,10 +56,10 @@ class SettingsTest extends TestCase {
 		$this->request = $this->getMock('OCP\IRequest');
 		$this->urlGenerator = $this->getMock('OCP\IURLGenerator');
 		$this->random = $this->getMock('OCP\Security\ISecureRandom');
-		$this->l10n = \OCP\Util::getL10N('activity', 'en');
+		$this->l10n = \OCP\Util::getL10N('ooba', 'en');
 
 		$this->controller = new Settings(
-			'oobactivity',
+			'ooba',
 			$this->request,
 			$this->config,
 			$this->random,
@@ -107,7 +108,7 @@ class SettingsTest extends TestCase {
 			->method('setUserValue')
 			->with(
 				'test',
-				'oobactivity',
+				'ooba',
 				'notify_email_NotificationTestTypeShared',
 				$notifyEmail
 			);
@@ -115,7 +116,7 @@ class SettingsTest extends TestCase {
 			->method('setUserValue')
 			->with(
 				'test',
-				'oobactivity',
+				'ooba',
 				'notify_stream_NotificationTestTypeShared',
 				$notifyStream
 			);
@@ -123,7 +124,7 @@ class SettingsTest extends TestCase {
 			->method('setUserValue')
 			->with(
 				'test',
-				'oobactivity',
+				'ooba',
 				'notify_setting_batchtime',
 				$expectedBatchTime
 			);
@@ -131,7 +132,7 @@ class SettingsTest extends TestCase {
 			->method('setUserValue')
 			->with(
 				'test',
-				'oobactivity',
+				'ooba',
 				'notify_setting_self',
 				$notifySettingSelf
 			);
@@ -139,7 +140,7 @@ class SettingsTest extends TestCase {
 			->method('setUserValue')
 			->with(
 				'test',
-				'oobactivity',
+				'ooba',
 				'notify_setting_selfemail',
 				$notifySettingSelfEmail
 			);
@@ -156,8 +157,7 @@ class SettingsTest extends TestCase {
 	 * @param array $response
 	 */
 	protected function assertDataResponse($response) {
-		$this->assertEquals(2, sizeof($response));
-		$this->assertArrayHasKey('status', $response);
+		$this->assertEquals(1, sizeof($response));
 		$this->assertArrayHasKey('data', $response);
 		$data = $response['data'];
 		$this->assertEquals(1, sizeof($data));
@@ -168,18 +168,31 @@ class SettingsTest extends TestCase {
 	public function testDisplayPanelTypeTable() {
 		$this->data->expects($this->any())
 			->method('getNotificationTypes')
-			->willReturn(['NotificationTestTypeShared' => 'Share description']);
+			->willReturn([
+				'NotificationTestTypeShared'	=> 'Share description',
+				'NotificationTestTypeShared2'	=> [
+					'desc' => 'Share description2',
+					'methods' => [IExtension::METHOD_MAIL],
+				],
+			]);
 
 		$renderedResponse = $this->controller->displayPanel()->render();
-		$this->assertContains('<form id="activity_notifications" class="section">', $renderedResponse);
+		$this->assertContains('<form id="ooba_notifications" class="section">', $renderedResponse);
 
 		// Checkboxes for the type
 		$this->assertContains('<label for="NotificationTestTypeShared_email">', $renderedResponse);
 		$this->assertContains('<label for="NotificationTestTypeShared_stream">', $renderedResponse);
 
+		$cleanedResponse = str_replace(["\n", "\t"], ' ', $renderedResponse);
+		while (strpos($cleanedResponse, '  ') !== false) {
+			$cleanedResponse = str_replace('  ', ' ', $cleanedResponse);
+		}
+		$this->assertContains('<input type="checkbox" id="NotificationTestTypeShared2_email" name="NotificationTestTypeShared2_email" value="1" class="NotificationTestTypeShared2 email checkbox" />', $cleanedResponse);
+		$this->assertContains('<input type="checkbox" id="NotificationTestTypeShared2_stream" name="NotificationTestTypeShared2_stream" value="1" class="NotificationTestTypeShared2 stream checkbox" disabled="disabled" />', $cleanedResponse);
+
 		// Description of the type
 		$cleanedResponse = str_replace(["\n", "\t"], '', $renderedResponse);
-		$this->assertContains('<td class="activity_select_group" data-select-group="NotificationTestTypeShared">Share description</td>', $cleanedResponse);
+		$this->assertContains('<td class="ooba_select_group" data-select-group="NotificationTestTypeShared">Share description</td>', $cleanedResponse);
 	}
 
 	public function displayPanelEmailWarningData() {
@@ -204,7 +217,7 @@ class SettingsTest extends TestCase {
 			->willReturn($email);
 
 		$renderedResponse = $this->controller->displayPanel()->render();
-		$this->assertContains('<form id="activity_notifications" class="section">', $renderedResponse);
+		$this->assertContains('<form id="ooba_notifications" class="section">', $renderedResponse);
 
 		if ($containsWarning) {
 			$this->assertContains('You need to set up your email address before you can receive notification emails.', $renderedResponse);
@@ -239,7 +252,7 @@ class SettingsTest extends TestCase {
 			->willReturn($setting);
 
 		$renderedResponse = $this->controller->displayPanel()->render();
-		$this->assertContains('<form id="activity_notifications" class="section">', $renderedResponse);
+		$this->assertContains('<form id="ooba_notifications" class="section">', $renderedResponse);
 
 		$this->assertContains('<option value="' . $selectedValue . '" selected="selected">' . $selectedLabel . '</option>', $renderedResponse);
 	}
@@ -268,15 +281,14 @@ class SettingsTest extends TestCase {
 			->willReturn('012345678901234567890123456789');
 		$this->urlGenerator->expects($this->any())
 			->method('linkToRouteAbsolute')
-			->with('activity.rss', ['token' => '012345678901234567890123456789'])
+			->with('ooba.Feed.show', ['token' => '012345678901234567890123456789'])
 			->willReturn('feedurl::012345678901234567890123456789');
 		$this->config->expects($this->once())
 			->method('setUserValue')
-			->with('test', 'oobactivity', 'rsstoken', $token);
+			->with('test', 'ooba', 'rsstoken', $token);
 
 		$response = $this->controller->feed($enabled)->getData();
-		$this->assertEquals(2, sizeof($response));
-		$this->assertArrayHasKey('status', $response);
+		$this->assertEquals(1, sizeof($response));
 		$this->assertArrayHasKey('data', $response);
 		$data = $response['data'];
 		$this->assertEquals(2, sizeof($data));

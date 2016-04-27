@@ -1,112 +1,184 @@
+/*
+ * Copyright (c) 2015
+ *
+ * This file is licensed under the Affero General Public License version 3
+ * or later.
+ *
+ * See the COPYING-README file.
+ *
+ */
 $(function(){
-	var OCActivity={};
+	var OCOoba={};
 
-	OCActivity.Filter = {
+	OCOoba.Filter = {
 		filter: undefined,
 		currentPage: 0,
 		navigation: $('#app-navigation'),
+
+
+		_onPopState: function(params) {
+			params = _.extend({
+				filter: 'all'
+			}, params);
+
+			this.setFilter(params.filter);
+		},
 
 		setFilter: function (filter) {
 			if (filter === this.filter) {
 				return;
 			}
 
-			this.navigation.find('a[data-navigation=' + this.filter + ']').removeClass('active');
+			this.navigation.find('a[data-navigation=' + this.filter + ']').parent().removeClass('active');
 			this.currentPage = 0;
 
 			this.filter = filter;
-			OC.Util.History.pushState('filter=' + filter);
 
-			OCActivity.InfinitScrolling.container.animate({ scrollTop: 0 }, 'slow');
-			OCActivity.InfinitScrolling.container.children().remove();
-			$('#no_activities').addClass('hidden');
-			$('#no_more_activities').addClass('hidden');
-			$('#loading_activities').removeClass('hidden');
-			OCActivity.InfinitScrolling.ignoreScroll = false;
+			OCOoba.InfinitScrolling.container.animate({ scrollTop: 0 }, 'slow');
+			OCOoba.InfinitScrolling.container.children().remove();
+			$('#emptycontent').addClass('hidden');
+			$('#no_more_oobas').addClass('hidden');
+			$('#loading_oobas').removeClass('hidden');
+			OCOoba.InfinitScrolling.ignoreScroll = false;
 
-			this.navigation.find('a[data-navigation=' + filter + ']').addClass('active');
+			this.navigation.find('a[data-navigation=' + filter + ']').parent().addClass('active');
 
-			OCActivity.InfinitScrolling.prefill();
+			OCOoba.InfinitScrolling.prefill();
 		}
 	};
 
-	OCActivity.InfinitScrolling = {
+	OCOoba.InfinitScrolling = {
 		ignoreScroll: false,
 		container: $('#container'),
+		lastDateGroup: null,
 		content: $('#app-content'),
 
 		prefill: function () {
 			if (this.content.scrollTop() + this.content.height() > this.container.height() - 100) {
-				OCActivity.Filter.currentPage++;
+				OCOoba.Filter.currentPage++;
 
 				$.get(
-					OC.generateUrl('/apps/activity/activities/fetch'),
-					'filter=' + OCActivity.Filter.filter + '&page=' + OCActivity.Filter.currentPage,
+					OC.generateUrl('/apps/ooba/oobas/fetch'),
+					'filter=' + OCOoba.Filter.filter + '&page=' + OCOoba.Filter.currentPage,
 					function (data) {
-						if (data.trim().length) {
-							OCActivity.InfinitScrolling.appendContent(data);
-
-							// Continue prefill
-							OCActivity.InfinitScrolling.prefill();
-						} else if (OCActivity.Filter.currentPage == 1) {
-							// First page is empty - No activities :(
-							$('#no_activities').removeClass('hidden');
-							$('#loading_activities').addClass('hidden');
-						} else {
-							// Page is empty - No more activities :(
-							$('#no_more_activities').removeClass('hidden');
-							$('#loading_activities').addClass('hidden');
-						}
+						OCOoba.InfinitScrolling.handleOobasCallback(data);
 					}
 				);
 			}
 		},
 
 		onScroll: function () {
-			if (!OCActivity.InfinitScrolling.ignoreScroll && OCActivity.InfinitScrolling.content.scrollTop() +
-			 OCActivity.InfinitScrolling.content.height() > OCActivity.InfinitScrolling.container.height() - 100) {
-				OCActivity.Filter.currentPage++;
+			if (!OCOoba.InfinitScrolling.ignoreScroll && OCOoba.InfinitScrolling.content.scrollTop() +
+			 OCOoba.InfinitScrolling.content.height() > OCOoba.InfinitScrolling.container.height() - 100) {
+				OCOoba.Filter.currentPage++;
 
-				OCActivity.InfinitScrolling.ignoreScroll = true;
+				OCOoba.InfinitScrolling.ignoreScroll = true;
 				$.get(
-					OC.generateUrl('/apps/activity/activities/fetch'),
-					'filter=' + OCActivity.Filter.filter + '&page=' + OCActivity.Filter.currentPage,
+					OC.generateUrl('/apps/ooba/oobas/fetch'),
+					'filter=' + OCOoba.Filter.filter + '&page=' + OCOoba.Filter.currentPage,
 					function (data) {
-						OCActivity.InfinitScrolling.appendContent(data);
-						OCActivity.InfinitScrolling.ignoreScroll = false;
-
-						if (!data.trim().length) {
-							// Page is empty - No more activities :(
-							$('#no_more_activities').removeClass('hidden');
-							$('#loading_activities').addClass('hidden');
-							OCActivity.InfinitScrolling.ignoreScroll = true;
+						if (OCOoba.InfinitScrolling.handleOobasCallback(data)) {
+							OCOoba.InfinitScrolling.ignoreScroll = false;
 						}
 					}
 				);
 			}
 		},
 
-		appendContent: function (content) {
-			var firstNewGroup = $(content).first(),
-				lastGroup = this.container.children().last();
+		handleOobasCallback: function (data) {
+			var $numOobas = data.length;
 
-			// Is the first new container the same as the last one?
-			if (lastGroup && lastGroup.data('date') === firstNewGroup.data('date')) {
-				var appendedBoxes = firstNewGroup.find('.box'),
-					lastBoxContainer = lastGroup.find('.boxcontainer');
+			if ($numOobas > 0) {
+				for (var i = 0; i < data.length; i++) {
+					var $ooba = data[i];
+					this.appendOobaToContainer($ooba);
+				}
 
-				// Move content into the last box
-				OCActivity.InfinitScrolling.processElements(appendedBoxes);
-				lastBoxContainer.append(appendedBoxes);
+				// Continue prefill
+				this.prefill();
+				return true;
 
-				// Remove the first box, so it's not duplicated
-				content = $(content).slice(1);
+			} else if (OCOoba.Filter.currentPage == 1) {
+				// First page is empty - No oobas :(
+				var $emptyContent = $('#emptycontent');
+				$emptyContent.removeClass('hidden');
+				if (OCOoba.Filter.filter == 'all') {
+					$emptyContent.find('p').text(t('ooba', 'This stream will show events like additions, changes & shares'));
+				} else {
+					$emptyContent.find('p').text(t('ooba', 'There are no events for this filter'));
+				}
+				$('#loading_oobas').addClass('hidden');
+
 			} else {
-				content = $(content);
+				// Page is empty - No more oobas :(
+				$('#no_more_oobas').removeClass('hidden');
+				$('#loading_oobas').addClass('hidden');
+			}
+			return false;
+		},
+
+		appendOobaToContainer: function ($ooba) {
+			this.makeSureDateGroupExists($ooba.relativeTimestamp, $ooba.readableTimestamp);
+			this.addOoba($ooba);
+		},
+
+		makeSureDateGroupExists: function($relativeTimestamp, $readableTimestamp) {
+			var $lastGroup = this.container.children().last();
+
+			if ($lastGroup.data('date') !== $relativeTimestamp) {
+				var $content = '<div class="section ooba-section group" data-date="' + escapeHTML($relativeTimestamp) + '">' + "\n"
+					+'	<h2>'+"\n"
+					+'		<span class="has-tooltip" title="' + escapeHTML($readableTimestamp) + '">' + escapeHTML($relativeTimestamp) + '</span>' + "\n"
+					+'	</h2>' + "\n"
+					+'	<div class="boxcontainer">' + "\n"
+					+'	</div>' + "\n"
+					+'</div>';
+				$content = $($content);
+				OCOoba.InfinitScrolling.processElements($content);
+				this.container.append($content);
+				this.lastDateGroup = $content;
+			}
+		},
+
+		addOoba: function($ooba) {
+			var $content = ''
+				+ '<div class="box">' + "\n"
+				+ '	<div class="messagecontainer">' + "\n"
+
+				+ '		<div class="ooba-icon ' + (($ooba.typeicon) ? escapeHTML($ooba.typeicon) + ' svg' : '') + '"></div>' + "\n"
+
+				+ '		<div class="oobasubject">' + "\n"
+				+ (($ooba.link) ? '			<a href="' + $ooba.link + '">' + "\n" : '')
+				+ '			' + $ooba.subjectformatted.markup.trimmed + "\n"
+				+ (($ooba.link) ? '			</a>' + "\n" : '')
+				+ '		</div>' + "\n"
+
+				+'		<span class="oobatime has-tooltip" title="' + escapeHTML($ooba.readableDateTimestamp) + '">' + "\n"
+				+ '			' + escapeHTML($ooba.relativeDateTimestamp) + "\n"
+				+'		</span>' + "\n";
+
+			if ($ooba.message) {
+				$content += '<div class="oobamessage">' + "\n"
+					+ $ooba.messageformatted.markup.trimmed + "\n"
+					+'</div>' + "\n";
 			}
 
-			OCActivity.InfinitScrolling.processElements(content);
-			this.container.append(content);
+			if ($ooba.previews && $ooba.previews.length) {
+				$content += '<br />';
+				for (var i = 0; i < $ooba.previews.length; i++) {
+					var $preview = $ooba.previews[i];
+					$content += (($preview.link) ? '<a href="' + $preview.link + '">' + "\n" : '')
+						+ '<img class="preview' + (($preview.isMimeTypeIcon) ? ' preview-mimetype-icon' : '') + '" src="' + $preview.source + '" alt=""/>' + "\n"
+						+ (($preview.link) ? '</a>' + "\n" : '')
+				}
+			}
+
+			$content += '	</div>' + "\n"
+				+'</div>';
+
+			$content = $($content);
+			OCOoba.InfinitScrolling.processElements($content);
+			this.lastDateGroup.append($content);
 		},
 
 		processElements: function (parentElement) {
@@ -115,18 +187,24 @@ $(function(){
 				element.avatar(element.data('user'), 28);
 			});
 
-			$(parentElement).find('.tooltip').tipsy({
-				gravity:	's',
-				fade:		true
-			});
+			$(parentElement).find('.has-tooltip').tooltip({
+				placement: 'bottom'
+			})
 		}
 	};
 
-	OCActivity.Filter.setFilter(OCActivity.InfinitScrolling.container.attr('data-activity-filter'));
-	OCActivity.InfinitScrolling.content.on('scroll', OCActivity.InfinitScrolling.onScroll);
+	OC.Util.History.addOnPopStateHandler(_.bind(OCOoba.Filter._onPopState, OCOoba.Filter));
+	OCOoba.Filter.setFilter(OCOoba.InfinitScrolling.container.attr('data-ooba-filter'));
+	OCOoba.InfinitScrolling.content.on('scroll', OCOoba.InfinitScrolling.onScroll);
 
-	OCActivity.Filter.navigation.find('a[data-navigation]').on('click', function (event) {
-		OCActivity.Filter.setFilter($(this).attr('data-navigation'));
+	OCOoba.Filter.navigation.find('a[data-navigation]').on('click', function (event) {
+		var filter = $(this).attr('data-navigation');
+		if (filter !== OCOoba.Filter.filter) {
+			OC.Util.History.pushState({
+				filter: filter
+			});
+		}
+		OCOoba.Filter.setFilter(filter);
 		event.preventDefault();
 	});
 
@@ -136,8 +214,8 @@ $(function(){
 		} else {
 			$('#rssurl').addClass('hidden');
 		}
-		$.post(OC.generateUrl('/apps/activity/settings/feed'), 'enable=' + this.checked, function(data) {
-			$('#rssurl').val(data.data.rsslink);
+		$.post(OC.generateUrl('/apps/ooba/settings/feed'), 'enable=' + this.checked, function(response) {
+			$('#rssurl').val(response.data.rsslink);
 		});
 	});
 

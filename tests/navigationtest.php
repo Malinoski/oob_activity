@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,36 +20,62 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OCA\OobActivity\Navigation;
+use OC\OobaManager;
+use OCA\Ooba\Navigation;
+use OCA\Ooba\Tests\Mock\Extension;
 
 class NavigationTest extends TestCase {
 	public function getTemplateData() {
 		return array(
-			array('all', null),
+			array('all'),
 			array('all', 'self'),
-			array('random', null),
+			array('all', 'self', 'thisIsTheRSSToken'),
+			array('random'),
 		);
 	}
 
 	/**
 	 * @dataProvider getTemplateData
 	 */
-	public function testGetTemplate($constructorActive, $forceActive) {
-		$l = \OCP\Util::getL10N('activity');
-		$navigation = new Navigation($l, \OC::$server->getActivityManager(), \OC::$server->getURLGenerator(), $constructorActive);
+	public function testGetTemplate($constructorActive, $forceActive = null, $rssToken = '') {
+		$oobaLanguage = \OCP\Util::getL10N('ooba', 'en');
+		$oobaManager = new OobaManager(
+			$this->getMock('OCP\IRequest'),
+			$this->getMock('OCP\IUserSession'),
+			$this->getMock('OCP\IConfig')
+		);
+		$oobaManager->registerExtension(function() use ($oobaLanguage) {
+			return new Extension($oobaLanguage, $this->getMock('\OCP\IURLGenerator'));
+		});
+		$userSettings = $this->getMockBuilder('OCA\Ooba\UserSettings')
+			->disableOriginalConstructor()
+			->getMock();
+		$userSettings->expects($this->exactly(2))
+			->method('getUserSetting')
+			->with('test', 'setting', 'self')
+			->willReturn(true);
+		$navigation = new Navigation(
+			$oobaLanguage,
+			$oobaManager,
+			\OC::$server->getURLGenerator(),
+			$userSettings,
+			'test',
+			$rssToken,
+			$constructorActive
+		);
 		$output = $navigation->getTemplate($forceActive)->fetchPage();
 
 		// Get only the template part with the navigation links
-		$navigationLinks = substr($output, strpos($output, '<li>') + 4);
+		$navigationLinks = substr($output, strpos($output, '<ul>') + 4);
 		$navigationLinks = substr($navigationLinks, 0, strrpos($navigationLinks, '</li>'));
 
 		// Remove tabs and new lines
 		$navigationLinks = str_replace(array("\t", "\n"), '', $navigationLinks);
 
 		// Turn the list of links into an array
-		$navigationEntries = explode('</li><li>', $navigationLinks);
+		$navigationEntries = explode('</li>', $navigationLinks);
 
 		$links = $navigation->getLinkList();
 
@@ -63,11 +89,10 @@ class NavigationTest extends TestCase {
 						'href="' . $link['url'] . '">' . $link['name']. '</a>',
 						$navigationEntry
 					);
-					if ($forceActive == $link['id']) {
-						$this->assertContains('class="active"', $navigationEntry);
-					}
-					else if ($forceActive == null && $constructorActive == $link['id']) {
-						$this->assertContains('class="active"', $navigationEntry);
+					if ($forceActive == $link['id'] || ($forceActive == null && $constructorActive == $link['id'])) {
+						$this->assertStringStartsWith('<li class="active">', $navigationEntry);
+					} else {
+						$this->assertStringStartsWith('<li>', $navigationEntry);
 					}
 				}
 			}
@@ -77,6 +102,14 @@ class NavigationTest extends TestCase {
 		// Check size of app links
 		$this->assertSame(1, sizeof($links['apps']));
 		$this->assertNotContains('data-navigation="files"', $navigationLinks, 'Files app should not be included when there are no other apps.');
+
+		if ($rssToken) {
+			$rssInputField = strpos($output, 'input id="rssurl"');
+			$this->assertGreaterThan(0, $rssInputField);
+			$endOfInputField = strpos($output, ' />', $rssInputField);
+
+			$this->assertNotSame(false, strpos(substr($output, $rssInputField, $endOfInputField - $rssInputField), $rssToken));
+		}
 	}
 
 }

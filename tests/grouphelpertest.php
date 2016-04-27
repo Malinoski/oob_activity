@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,11 +20,13 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OCA\OobActivity\DataHelper;
-use OCA\OobActivity\GroupHelper;
-use OCA\OobActivity\ParameterHelper;
+use OC\OobaManager;
+use OCA\Ooba\DataHelper;
+use OCA\Ooba\GroupHelper;
+use OCA\Ooba\ParameterHelper;
+use OCA\Ooba\Tests\Mock\Extension;
 
 class GroupHelperTest extends TestCase {
 	public function groupHelperData() {
@@ -43,32 +45,36 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 			),
@@ -76,32 +82,36 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 			),
@@ -109,41 +119,45 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 2,
-						'activity_ids'	=> array(2, 1),
+						'ooba_id'	=> 2,
+						'ooba_ids'	=> array(2, 1),
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array(array(
 							'testing/file2.txt',
 							'testing/file1.txt',
@@ -151,7 +165,13 @@ class GroupHelperTest extends TestCase {
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file2.txt',
-						'typeicon'		=> 'icon-add-color',
+						'files'			=> [
+							42 => 'testing/file2.txt',
+							21 => 'testing/file1.txt',
+						],
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 			),
@@ -159,54 +179,118 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 3,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file3.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
-						'file'			=> 'testing/file3.txt',
-						'timestamp'		=> time(),
-					),
-					array(
-						'activity_id'	=> 2,
-						'user'			=> 'user',
-						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
-						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'shared',
-						'subject'		=> 'shared_link_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
-						'file'			=> 'testing/file1.txt',
-						'timestamp'		=> time() - 10,
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file2.txt',
+						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 3,
-						'activity_ids'	=> array(3, 2),
+						'ooba_id'	=> 2,
+						'ooba_ids'	=> array(2, 1),
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> array(array(
+							'testing/file2.txt',
+						)),
+						'message'		=> '',
+						'messageparams'	=> array(),
+						'file'			=> 'testing/file2.txt',
+						'files'			=> [
+							42 => 'testing/file2.txt'
+						],
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
+					),
+				),
+			),
+			array(
+				true,
+				array(
+					array(
+						'ooba_id'	=> 3,
+						'user'			=> 'user',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file3.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file3.txt',
+						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 1337,
+					),
+					array(
+						'ooba_id'	=> 2,
+						'user'			=> 'user',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file2.txt',
+						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
+					),
+					array(
+						'ooba_id'	=> 1,
+						'user'			=> 'user',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'NOTtype1',
+						'subject'		=> 'NOTsubject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file1.txt',
+						'timestamp'		=> time() - 10,
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
+					),
+				),
+				array(
+					array(
+						'ooba_id'	=> 3,
+						'ooba_ids'	=> array(3, 2),
+						'user'			=> 'user',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array(array(
 							'testing/file3.txt',
 							'testing/file2.txt',
@@ -214,20 +298,130 @@ class GroupHelperTest extends TestCase {
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file3.txt',
-						'typeicon'		=> 'icon-add-color',
+						'files'			=> [
+							1337 => 'testing/file3.txt',
+							42 => 'testing/file2.txt',
+						],
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 1337,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'shared',
-						'subject'		=> 'shared_link_self',
+						'app'			=> 'app1',
+						'type'			=> 'NOTtype1',
+						'subject'		=> 'NOTsubject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-share',
+						'typeicon'		=> '',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
+					),
+				),
+			),
+
+			// FIXME
+			// Non-local users are currently not distinguishable, so grouping them might
+			// remove the information how many different users performed the same action.
+			// So we do not group them anymore, until we found another solution.
+			array(
+				true,
+				array(
+					array(
+						'ooba_id'	=> 3,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file3.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file3.txt',
+						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 1337,
+					),
+					array(
+						'ooba_id'	=> 2,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file2.txt',
+						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
+					),
+					array(
+						'ooba_id'	=> 1,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'NOTtype1',
+						'subject'		=> 'NOTsubject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
+						'message'		=> '',
+						'messageparams'	=> json_encode([]),
+						'file'			=> 'testing/file1.txt',
+						'timestamp'		=> time() - 10,
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
+					),
+				),
+				array(
+					array(
+						'ooba_id'	=> 3,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> array('testing/file3.txt'),
+						'message'		=> '',
+						'messageparams'	=> array(),
+						'file'			=> 'testing/file3.txt',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 1337,
+					),
+					array(
+						'ooba_id'	=> 2,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> array('testing/file2.txt'),
+						'message'		=> '',
+						'messageparams'	=> array(),
+						'file'			=> 'testing/file2.txt',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
+					),
+					array(
+						'ooba_id'	=> 1,
+						'user'			=> '',
+						'affecteduser'	=> 'affecteduser',
+						'app'			=> 'app1',
+						'type'			=> 'NOTtype1',
+						'subject'		=> 'NOTsubject1',
+						'subjectparams'	=> array('testing/file1.txt'),
+						'message'		=> '',
+						'messageparams'	=> array(),
+						'file'			=> 'testing/file1.txt',
+						'typeicon'		=> '',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 			),
@@ -235,58 +429,66 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize('testing/file1.txt'),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode('testing/file1.txt'),
 						'message'		=> '',
-						'messageparams'	=> serialize(''),
+						'messageparams'	=> json_encode(''),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time() - 1000000,
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file2.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file2.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(''),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 			),
@@ -294,58 +496,66 @@ class GroupHelperTest extends TestCase {
 				false,
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file2.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file2.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 			),
@@ -353,58 +563,66 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'NOTfiles',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
+						'app'			=> 'NOTapp1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'NOTfiles',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'NOTapp1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'NOTfiles',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'NOTapp1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file2.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file2.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'NOTfiles',
-						'type'			=> 'file_created',
-						'subject'		=> 'created_self',
+						'app'			=> 'NOTapp1',
+						'type'			=> 'type1',
+						'subject'		=> 'subject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 			),
@@ -412,58 +630,66 @@ class GroupHelperTest extends TestCase {
 				true,
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'NOTcreated_self',
-						'subjectparams'	=> serialize(array('testing/file2.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'NOTsubject1',
+						'subjectparams'	=> json_encode(['testing/file2.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file2.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'NOTcreated_self',
-						'subjectparams'	=> serialize(array('testing/file1.txt')),
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'NOTsubject1',
+						'subjectparams'	=> json_encode(['testing/file1.txt']),
 						'message'		=> '',
-						'messageparams'	=> serialize(array()),
+						'messageparams'	=> json_encode([]),
 						'file'			=> 'testing/file1.txt',
 						'timestamp'		=> time(),
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 				array(
 					array(
-						'activity_id'	=> 2,
+						'ooba_id'	=> 2,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'NOTcreated_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'NOTsubject1',
 						'subjectparams'	=> array('testing/file2.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file2.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 42,
 					),
 					array(
-						'activity_id'	=> 1,
+						'ooba_id'	=> 1,
 						'user'			=> 'user',
 						'affecteduser'	=> 'affecteduser',
-						'app'			=> 'files',
-						'type'			=> 'file_created',
-						'subject'		=> 'NOTcreated_self',
+						'app'			=> 'app1',
+						'type'			=> 'type1',
+						'subject'		=> 'NOTsubject1',
 						'subjectparams'	=> array('testing/file1.txt'),
 						'message'		=> '',
 						'messageparams'	=> array(),
 						'file'			=> 'testing/file1.txt',
-						'typeicon'		=> 'icon-add-color',
+						'typeicon'		=> 'icon-type1',
+						'object_type'	=> 'files',
+						'object_id'		=> 21,
 					),
 				),
 			),
@@ -473,41 +699,91 @@ class GroupHelperTest extends TestCase {
 	/**
 	 * @dataProvider groupHelperData
 	 */
-	public function testGroupHelper($allowGrouping, $activities, $expected) {
-		$activityManager = $this->getMock('\OCP\Activity\IManager');
-		$activityManager->expects($this->any())
-			->method('getGroupParameter')
-			->with($this->anything())
-			->will($this->returnValue(false));
-		$activityLanguage = \OCP\Util::getL10N('activity');
+	public function testGroupHelper($allowGrouping, $oobas, $expected) {
+		$oobaLanguage = \OCP\Util::getL10N('ooba', 'en');
+		$oobaManager = new OobaManager(
+			$this->getMock('OCP\IRequest'),
+			$this->getMock('OCP\IUserSession'),
+			$this->getMock('OCP\IConfig')
+		);
+		$oobaManager->registerExtension(function() use ($oobaLanguage) {
+			return new Extension($oobaLanguage, $this->getMock('\OCP\IURLGenerator'));
+		});
 
 		$helper = new GroupHelper(
-			$activityManager,
+			$oobaManager,
 			new DataHelper(
-				$activityManager,
+				$oobaManager,
 				new ParameterHelper(
-					$activityManager,
-					new \OC\Files\View(''),
+					$oobaManager,
+					$this->getMockBuilder('OCP\IUserManager')->disableOriginalConstructor()->getMock(),
+					$this->getMockBuilder('\OCP\IURLGenerator')->disableOriginalConstructor()->getMock(),
+					$this->getMockBuilder('OCP\Contacts\IManager')->disableOriginalConstructor()->getMock(),
+					$this->getMockBuilder('OC\Files\View')->disableOriginalConstructor()->getMock(),
 					$this->getMockBuilder('OCP\IConfig')->disableOriginalConstructor()->getMock(),
-					$activityLanguage
+					$oobaLanguage,
+					'test'
 				),
-				$activityLanguage
+				$oobaLanguage
 			),
 			$allowGrouping
 		);
 
-		foreach ($activities as $activity) {
-			$helper->addActivity($activity);
+		foreach ($oobas as $ooba) {
+			$helper->addOoba($ooba);
 		}
 
-		$result = $helper->getActivities();
+		$result = $helper->getOobas();
 		$clearedResult = array();
-		foreach ($result as $activity) {
-			unset($activity['subjectformatted']);
-			unset($activity['messageformatted']);
-			unset($activity['timestamp']);
-			$clearedResult[] = $activity;
+		foreach ($result as $ooba) {
+			unset($ooba['subjectformatted']);
+			unset($ooba['messageformatted']);
+			unset($ooba['timestamp']);
+			$clearedResult[] = $ooba;
 		}
 		$this->assertEquals($expected, $clearedResult);
+	}
+
+	public function testSetUser() {
+		/** @var GroupHelper $helper */
+		/** @var \PHPUnit_Framework_MockObject_MockObject $dataHelperMock */
+		list($helper, $dataHelperMock) = $this->setUpHelpers();
+
+		$dataHelperMock->expects($this->once())
+			->method('setUser')
+			->with('foobar');
+
+		$helper->setUser('foobar');
+	}
+
+	public function testSetL10n() {
+		/** @var GroupHelper $helper */
+		/** @var \PHPUnit_Framework_MockObject_MockObject $dataHelperMock */
+		list($helper, $dataHelperMock) = $this->setUpHelpers();
+		$l = \OCP\Util::getL10N('ooba', 'de');
+
+		$dataHelperMock->expects($this->once())
+			->method('setL10n')
+			->with($l);
+
+		$helper->setL10n($l);
+	}
+
+	/**
+	 * Sets up the GroupHelper with a mocked DataHelper
+	 * @return array
+	 */
+	protected function setUpHelpers() {
+		$dataHelperMock = $this->getMockBuilder('OCA\Ooba\DataHelper')
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = new GroupHelper(
+			$this->getMockBuilder('OCP\Activity\IManager')->disableOriginalConstructor()->getMock(),
+			$dataHelperMock,
+			true
+		);
+
+		return [$helper, $dataHelperMock];
 	}
 }

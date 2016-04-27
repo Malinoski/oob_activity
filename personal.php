@@ -11,7 +11,7 @@
  * See the COPYING-README file.
  */
 
-$app = new \OCA\OobActivity\AppInfo\Application();
-/** @var OCA\OobActivity\Controller\Settings $controller */
+$app = new \OCA\Ooba\AppInfo\Application();
+/** @var OCA\Ooba\Controller\Settings $controller */
 $controller = $app->getContainer()->query('SettingsController');
 return $controller->displayPanel()->render();

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,11 +20,12 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OC\ActivityManager;
-use OCA\OobActivity\UserSettings;
-use OCA\OobActivity\Data;
+use OC\OobaManager;
+use OCA\Ooba\Data;
+use OCA\Ooba\Tests\Mock\Extension;
+use OCA\Ooba\UserSettings;
 
 class UserSettingsTest extends TestCase {
 	/** @var UserSettings */
@@ -36,9 +37,21 @@ class UserSettingsTest extends TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$am = new ActivityManager();
+		$oobaLanguage = \OCP\Util::getL10N('ooba', 'en');
+		$oobaManager = new OobaManager(
+			$this->getMock('OCP\IRequest'),
+			$this->getMock('OCP\IUserSession'),
+			$this->getMock('OCP\IConfig')
+		);
+		$oobaManager->registerExtension(function() use ($oobaLanguage) {
+			return new Extension($oobaLanguage, $this->getMock('\OCP\IURLGenerator'));
+		});
 		$this->config = $this->getMock('OCP\IConfig');
-		$this->userSettings = new UserSettings($am, $this->config, new Data($am));
+		$this->userSettings = new UserSettings($oobaManager, $this->config, new Data(
+			$oobaManager,
+			$this->getMock('\OCP\IDBConnection'),
+			$this->getMock('\OCP\IUserSession')
+		));
 	}
 
 	protected function tearDown() {
@@ -47,10 +60,8 @@ class UserSettingsTest extends TestCase {
 
 	public function getDefaultSettingData() {
 		return array(
-			array('stream', Data::TYPE_SHARED, true),
-			array('stream', Data::TYPE_SHARE_CREATED, true),
-			array('email', Data::TYPE_SHARED, true),
-			array('email', Data::TYPE_SHARE_CREATED, false),
+			array('stream', 'type1', true),
+			array('email', 'type1', false),
 			array('setting', 'self', true),
 			array('setting', 'selfemail', false),
 			array('setting', 'batchtime', 3600),
@@ -71,8 +82,8 @@ class UserSettingsTest extends TestCase {
 
 	public function getNotificationTypesData() {
 		return array(
-			array('test1', 'stream', array('shared', 'file_created', 'file_changed', 'file_deleted', 'file_restored')),
-			array('noPreferences', 'email', array('shared')),
+			//array('test1', 'stream', array('type1')),
+			array('noPreferences', 'email', array('type2')),
 		);
 	}
 
@@ -86,14 +97,12 @@ class UserSettingsTest extends TestCase {
 	public function testGetNotificationTypes($user, $method, $expected) {
 		$this->config->expects($this->any())
 			->method('getUserValue')
-			->with($this->anything(), 'oobactivity', $this->stringStartsWith('notify_'), $this->anything())
+			->with($this->anything(), 'ooba', $this->stringStartsWith('notify_'), $this->anything())
 			->willReturnMap([
-				['test1', 'oobactivity', 'notify_stream_shared', true, true],
-				['test1', 'oobactivity', 'notify_stream_file_created', true, true],
-				['test1', 'oobactivity', 'notify_stream_file_changed', true, true],
-				['test1', 'oobactivity', 'notify_stream_file_deleted', true, true],
-				['test1', 'oobactivity', 'notify_stream_file_restored', true, true],
-				['noPreferences', 'oobactivity', 'notify_email_shared', true, true],
+				['test1', 'ooba', 'notify_stream_type1', true, true],
+				['test1', 'ooba', 'notify_stream_type2', true, false],
+				['noPreferences', 'ooba', 'notify_email_type1', false, false],
+				['noPreferences', 'ooba', 'notify_email_type2', true, true],
 			]);
 
 		$this->assertEquals($expected, $this->userSettings->getNotificationTypes($user, $method));
@@ -102,13 +111,13 @@ class UserSettingsTest extends TestCase {
 	public function filterUsersBySettingData() {
 		return array(
 			array(array(), 'stream', 'type1', array()),
-			array(array('test', 'test1', 'test2', 'test3', 'test4'), 'stream', 'type1', array('test1' => true, 'test4' => true)),
-			array(array('test', 'test1', 'test2', 'test3', 'test4', 'test5'), 'email', 'type1', array('test1' => '1', 'test4' => '4', 'test5' => true)),
-			array(array('test', 'test6'), 'stream', 'file_created', array('test' => true, 'test6' => true)),
-			array(array('test', 'test6'), 'stream', 'file_nodefault', array('test6' => true)),
-			array(array('test6'), 'email', 'shared', array('test6' => '2700')),
-			array(array('test', 'test6'), 'email', 'shared', array('test' => '3600', 'test6' => '2700')),
-			array(array('test', 'test6'), 'email', 'file_created', array('test6' => '2700')),
+			array(array('test', 'test1', 'test2', 'test3', 'test4'), 'stream', 'type3', array('test1' => true, 'test4' => true)),
+			array(array('test', 'test1', 'test2', 'test3', 'test4', 'test5'), 'email', 'type3', array('test1' => '1', 'test4' => '4', 'test5' => true)),
+			array(array('test', 'test6'), 'stream', 'type1', array('test' => true, 'test6' => true)),
+			array(array('test', 'test6'), 'stream', 'type4', array('test6' => true)),
+			array(array('test6'), 'email', 'type2', array('test6' => '2700')),
+			array(array('test', 'test6'), 'email', 'type2', array('test' => '3600', 'test6' => '2700')),
+			array(array('test', 'test6'), 'email', 'type1', array('test6' => '2700')),
 		);
 	}
 
@@ -125,18 +134,18 @@ class UserSettingsTest extends TestCase {
 			->method('getUserValueForUsers')
 			->with($this->anything(), $this->anything(), $this->anything())
 			->willReturnMap([
-				['oobactivity', 'notify_stream_file_created', ['test', 'test6'], ['test6' => '1']],
-				['oobactivity', 'notify_stream_file_nodefault', ['test', 'test6'], ['test6' => '1']],
-				['oobactivity', 'notify_stream_type1', ['test', 'test1', 'test2', 'test3', 'test4'], ['test1' => '1', 'test2' => '0', 'test3' => '', 'test4' => '1']],
+				['ooba', 'notify_stream_type1', ['test', 'test6'], ['test6' => '1']],
+				['ooba', 'notify_stream_type4', ['test', 'test6'], ['test6' => '1']],
+				['ooba', 'notify_stream_type3', ['test', 'test1', 'test2', 'test3', 'test4'], ['test1' => '1', 'test2' => '0', 'test3' => '', 'test4' => '1']],
 
-				['oobactivity', 'notify_email_file_created', ['test', 'test6'], ['test6' => '1']],
-				['oobactivity', 'notify_email_shared', ['test6'], ['test6' => '1']],
-				['oobactivity', 'notify_email_shared', ['test', 'test6'], ['test6' => '1']],
-				['oobactivity', 'notify_email_type1', ['test', 'test1', 'test2', 'test3', 'test4', 'test5'], ['test1' => '1', 'test2' => '0', 'test3' => '', 'test4' => '3', 'test5' => '1']],
+				['ooba', 'notify_email_type1', ['test', 'test6'], ['test6' => '1']],
+				['ooba', 'notify_email_type2', ['test6'], ['test6' => '1']],
+				['ooba', 'notify_email_type2', ['test', 'test6'], ['test6' => '1']],
+				['ooba', 'notify_email_type3', ['test', 'test1', 'test2', 'test3', 'test4', 'test5'], ['test1' => '1', 'test2' => '0', 'test3' => '', 'test4' => '3', 'test5' => '1']],
 
-				['oobactivity', 'notify_setting_batchtime', ['test6'], ['test6' => '2700']],
-				['oobactivity', 'notify_setting_batchtime', ['test', 'test6'], ['test6' => '2700']],
-				['oobactivity', 'notify_setting_batchtime', ['test1', 'test4', 'test5'], ['test1' => '1', 'test4' => '4']],
+				['ooba', 'notify_setting_batchtime', ['test6'], ['test6' => '2700']],
+				['ooba', 'notify_setting_batchtime', ['test', 'test6'], ['test6' => '2700']],
+				['ooba', 'notify_setting_batchtime', ['test1', 'test4', 'test5'], ['test1' => '1', 'test4' => '4']],
 			]);
 
 		$this->assertEquals($expected, $this->userSettings->filterUsersBySetting($users, $method, $type));

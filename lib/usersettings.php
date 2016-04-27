@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,7 +21,7 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
 use OCP\Activity\IManager;
 use OCP\IConfig;
@@ -30,7 +30,7 @@ use OCP\Util;
 /**
  * Class UserSettings
  *
- * @package OCA\OobActivity
+ * @package OCA\Ooba
  */
 class UserSettings {
 	/** @var IManager */
@@ -64,13 +64,13 @@ class UserSettings {
 	 *
 	 * @param string $user
 	 * @param string $method Should be one of 'stream', 'email' or 'setting'
-	 * @param string $type One of the activity types, 'batchtime' or 'self'
+	 * @param string $type One of the ooba types, 'batchtime' or 'self'
 	 * @return mixed
 	 */
 	public function getUserSetting($user, $method, $type) {
 		return $this->config->getUserValue(
 			$user,
-			'oobactivity',
+			'ooba',
 			'notify_' . $method . '_' . $type,
 			$this->getDefaultSetting($method, $type)
 		);
@@ -80,58 +80,22 @@ class UserSettings {
 	 * Get a good default setting for a preference
 	 *
 	 * @param string $method Should be one of 'stream', 'email' or 'setting'
-	 * @param string $type One of the activity types, 'batchtime', 'self' or 'selfemail'
+	 * @param string $type One of the ooba types, 'batchtime', 'self' or 'selfemail'
 	 * @return bool|int
 	 */
 	public function getDefaultSetting($method, $type) {
-		if ($method == 'setting') {
-			if ($type == 'batchtime') {
+		if ($method === 'setting') {
+			if ($type === 'batchtime') {
 				return 3600;
-			} else if ($type == 'self') {
+			} else if ($type === 'self') {
 				return true;
-			} else if ($type == 'selfemail') {
+			} else if ($type === 'selfemail') {
 				return false;
 			}
 		}
 
-		$settings = $this->getDefaultTypes($method);
+		$settings = $this->manager->getDefaultTypes($method);
 		return in_array($type, $settings);
-	}
-
-	/**
-	 * Get the default selection of types for a method
-	 *
-	 * @param string $method Should be one of 'stream' or 'email'
-	 * @return array Array of strings
-	 */
-	public function getDefaultTypes($method) {
-		$settings = array();
-		if ($method === 'stream') {
-			$settings[] = Data::TYPE_SHARE_CREATED;
-			$settings[] = Data::TYPE_SHARE_CHANGED;
-			$settings[] = Data::TYPE_SHARE_DELETED;
-//			$settings[] = Data::TYPE_SHARE_RESHARED;
-			$settings[] = Data::TYPE_SHARE_RESTORED;
-
-//			$settings[] = Data::TYPE_SHARE_DOWNLOADED;
-		}
-
-		if ($method === 'stream' || $method === 'email') {
-			$settings[] = Data::TYPE_SHARED;
-//			$settings[] = Data::TYPE_SHARE_EXPIRED;
-//			$settings[] = Data::TYPE_SHARE_UNSHARED;
-//
-//			$settings[] = Data::TYPE_SHARE_UPLOADED;
-//
-//			$settings[] = Data::TYPE_STORAGE_QUOTA_90;
-//			$settings[] = Data::TYPE_STORAGE_FAILURE;
-		}
-
-		// Allow other apps to add notification types to the default setting
-		$additionalSettings = $this->manager->getDefaultTypes($method);
-		$settings = array_merge($settings, $additionalSettings);
-
-		return $settings;
 	}
 
 	/**
@@ -142,7 +106,7 @@ class UserSettings {
 	 * @return array
 	 */
 	public function getNotificationTypes($user, $method) {
-		$l = Util::getL10N('oobactivity');
+		$l = Util::getL10N('ooba');
 		$types = $this->data->getNotificationTypes($l);
 
 		$notificationTypes = array();
@@ -170,7 +134,7 @@ class UserSettings {
 		}
 
 		$filteredUsers = array();
-		$potentialUsers = $this->config->getUserValueForUsers('oobactivity', 'notify_' . $method . '_' . $type, $users);
+		$potentialUsers = $this->config->getUserValueForUsers('ooba', 'notify_' . $method . '_' . $type, $users);
 		foreach ($potentialUsers as $user => $value) {
 			if ($value) {
 				$filteredUsers[$user] = true;
@@ -179,8 +143,8 @@ class UserSettings {
 		}
 
 		// Get the batch time setting from the database
-		if ($method == 'email') {
-			$potentialUsers = $this->config->getUserValueForUsers('oobactivity', 'notify_setting_batchtime', array_keys($filteredUsers));
+		if ($method === 'email') {
+			$potentialUsers = $this->config->getUserValueForUsers('ooba', 'notify_setting_batchtime', array_keys($filteredUsers));
 			foreach ($potentialUsers as $user => $value) {
 				$filteredUsers[$user] = $value;
 			}
@@ -194,7 +158,7 @@ class UserSettings {
 		// we add all users that didn't set the preference yet.
 		if ($this->getDefaultSetting($method, $type)) {
 			foreach ($users as $user) {
-				if ($method == 'stream') {
+				if ($method === 'stream') {
 					$filteredUsers[$user] = true;
 				} else {
 					$filteredUsers[$user] = $this->getDefaultSetting('setting', 'batchtime');

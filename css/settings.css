@@ -1,22 +1,22 @@
-table.activitysettings {
+table.oobasettings {
 	max-width: 550px;
 	white-space: normal;
 }
 
-table.activitysettings th.small {
+table.oobasettings th.small {
 	width: 5em;
 }
 
-table.activitysettings tbody tr {
+table.oobasettings tbody tr {
 	height: 2.5em;
 }
 
-table.activitysettings th.small,
-table.activitysettings td.small {
+table.oobasettings th.small,
+table.oobasettings td.small {
 	text-align: center;
 }
 
-table.activitysettings td.small label {
+table.oobasettings td.small label {
 	width: 100%;
 	height: 100%;
 	display: block;

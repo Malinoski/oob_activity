@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,17 +21,28 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
-use \OCP\IDateTimeFormatter;
+use OCP\Defaults;
+use OCP\IDateTimeFormatter;
+use OCP\IDBConnection;
+use OCP\IURLGenerator;
+use OCP\IUser;
+use OCP\IUserManager;
+use OCP\Mail\IMailer;
+use OCP\Template;
+use OCP\Util;
 
 /**
  * Class MailQueueHandler
  * Gets the users from the database and
  *
- * @package OCA\OobActivity
+ * @package OCA\Ooba
  */
 class MailQueueHandler {
+	/** Number of entries we want to list in the email */
+	const ENTRY_LIMIT = 200;
+
 	/** @var array */
 	protected $languages;
 
@@ -44,13 +55,43 @@ class MailQueueHandler {
 	/** @var IDateTimeFormatter */
 	protected $dateFormatter;
 
+	/** @var DataHelper */
+	protected $dataHelper;
+
+	/** @var IDBConnection */
+	protected $connection;
+
+	/** @var IMailer */
+	protected $mailer;
+
+	/** @var IURLGenerator */
+	protected $urlGenerator;
+
+	/** @var IUserManager */
+	protected $userManager;
+
 	/**
 	 * Constructor
 	 *
 	 * @param IDateTimeFormatter $dateFormatter
+	 * @param IDBConnection $connection
+	 * @param DataHelper $dataHelper
+	 * @param IMailer $mailer
+	 * @param IURLGenerator $urlGenerator
+	 * @param IUserManager $userManager
 	 */
-	public function __construct(IDateTimeFormatter $dateFormatter) {
+	public function __construct(IDateTimeFormatter $dateFormatter,
+								IDBConnection $connection,
+								DataHelper $dataHelper,
+								IMailer $mailer,
+								IURLGenerator $urlGenerator,
+								IUserManager $userManager) {
 		$this->dateFormatter = $dateFormatter;
+		$this->connection = $connection;
+		$this->dataHelper = $dataHelper;
+		$this->mailer = $mailer;
+		$this->urlGenerator = $urlGenerator;
+		$this->userManager = $userManager;
 	}
 
 	/**
@@ -63,69 +104,73 @@ class MailQueueHandler {
 	public function getAffectedUsers($limit, $latestSend) {
 		$limit = (!$limit) ? null : (int) $limit;
 
-		$query = \OCP\DB::prepare(
-			'SELECT `amq_affecteduser`, MIN(`amq_latest_send`) AS `amq_trigger_time` '
-			. ' FROM `*PREFIX*oobactivity_mq` '
-			. ' WHERE `amq_latest_send` < ? '
-			. ' GROUP BY `amq_affecteduser` '
-			. ' ORDER BY `amq_trigger_time` ASC',
+		$query = $this->connection->prepare(
+			'SELECT `oobamq_affecteduser`, MIN(`oobamq_latest_send`) AS `oobamq_trigger_time` '
+			. ' FROM `*PREFIX*ooba_mq` '
+			. ' WHERE `oobamq_latest_send` < ? '
+			. ' GROUP BY `oobamq_affecteduser` '
+			. ' ORDER BY `oobamq_trigger_time` ASC',
 			$limit);
-		$result = $query->execute(array($latestSend));
+		$query->execute(array($latestSend));
 
 		$affectedUsers = array();
-		if (\OCP\DB::isError($result)) {
-			\OCP\Util::writeLog('OCA\OobActivity', \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
-		} else {
-			while ($row = $result->fetchRow()) {
-				$affectedUsers[] = $row['amq_affecteduser'];
-			}
+		while ($row = $query->fetch()) {
+			$affectedUsers[] = $row['oobamq_affecteduser'];
 		}
 
 		return $affectedUsers;
 	}
 
 	/**
-	 * Get all items for the users we want to send an email to
+	 * Get all items for the user we want to send an email to
 	 *
-	 * @param array $affectedUsers
+	 * @param string $affectedUser
 	 * @param int $maxTime
-	 * @return array Notification data (user => array of rows from the table)
+	 * @param int $maxNumItems
+	 * @return array [data of the first max. 200 entries, total number of entries]
 	 */
-	public function getItemsForUsers($affectedUsers, $maxTime) {
-		$placeholders = implode(',', array_fill(0, sizeof($affectedUsers), '?'));
-		$queryParams = $affectedUsers;
-		array_unshift($queryParams, (int) $maxTime);
-
-		$query = \OCP\DB::prepare(
+	protected function getItemsForUser($affectedUser, $maxTime, $maxNumItems = self::ENTRY_LIMIT) {
+		$query = $this->connection->prepare(
 			'SELECT * '
-			. ' FROM `*PREFIX*oobactivity_mq` '
-			. ' WHERE `amq_timestamp` <= ? '
-			. ' AND `amq_affecteduser` IN (' . $placeholders . ')'
-			. ' ORDER BY `amq_timestamp` ASC'
+			. ' FROM `*PREFIX*ooba_mq` '
+			. ' WHERE `oobamq_timestamp` <= ? '
+			. ' AND `oobamq_affecteduser` = ? '
+			. ' ORDER BY `oobamq_timestamp` ASC',
+			$maxNumItems
 		);
-		$result = $query->execute($queryParams);
+		$query->execute([(int) $maxTime, $affectedUser]);
 
-		$userActivityMap = array();
-		if (\OCP\DB::isError($result)) {
-			\OCP\Util::writeLog('Activity', \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
-		} else {
-			while ($row = $result->fetchRow()) {
-				$userActivityMap[$row['amq_affecteduser']][] = $row;
-			}
+		$oobas = array();
+		while ($row = $query->fetch()) {
+			$oobas[] = $row;
 		}
 
-		return $userActivityMap;
+		if (isset($oobas[$maxNumItems - 1])) {
+			// Reached the limit, run a query to get the actual count.
+			$query = $this->connection->prepare(
+				'SELECT COUNT(*) AS `actual_count`'
+				. ' FROM `*PREFIX*ooba_mq` '
+				. ' WHERE `oobamq_timestamp` <= ? '
+				. ' AND `oobamq_affecteduser` = ?'
+			);
+			$query->execute([(int) $maxTime, $affectedUser]);
+
+			$row = $query->fetch();
+			return [$oobas, $row['actual_count'] - $maxNumItems];
+		} else {
+			return [$oobas, 0];
+		}
 	}
 
 	/**
 	 * Get a language object for a specific language
 	 *
 	 * @param string $lang Language identifier
-	 * @return \OC_L10N Language object of $lang
+	 * @return \OCP\IL10N Language object of $lang
 	 */
 	protected function getLanguage($lang) {
 		if (!isset($this->languages[$lang])) {
-			$this->languages[$lang] = \OC_L10N::get('oobactivity', $lang);
+			$this->languages[$lang] = Util::getL10N('ooba', $lang);
 		}
 
 		return $this->languages[$lang];
@@ -138,10 +183,10 @@ class MailQueueHandler {
 	 */
 	protected function getSenderData($setting) {
 		if (empty($this->senderAddress)) {
-			$this->senderAddress = \OCP\Util::getDefaultEmailAddress('no-reply');
+			$this->senderAddress = Util::getDefaultEmailAddress('no-reply');
 		}
 		if (empty($this->senderName)) {
-			$defaults = new \OCP\Defaults();
+			$defaults = new Defaults();
 			$this->senderName = $defaults->getName();
 		}
 
@@ -152,78 +197,56 @@ class MailQueueHandler {
 	}
 
 	/**
-	 * Get the selected setting for a time frame
-	 * However we are not very accurate here, so we match the setting of the user
-	 * a bit better.
-	 *
-	 * @param int $timestamp
-	 * @return int Email send option that is used.
-	 */
-	protected function getLangForApproximatedTimeFrame($timestamp) {
-		if (time() - $timestamp < 4000) {
-			return UserSettings::EMAIL_SEND_HOURLY;
-		} else if (time() - $timestamp < 90000) {
-			return UserSettings::EMAIL_SEND_DAILY;
-		} else {
-			return UserSettings::EMAIL_SEND_WEEKLY;
-		}
-	}
-
-	/**
 	 * Send a notification to one user
 	 *
-	 * @param string $user Username of the recipient
+	 * @param string $userName Username of the recipient
 	 * @param string $email Email address of the recipient
 	 * @param string $lang Selected language of the recipient
 	 * @param string $timezone Selected timezone of the recipient
-	 * @param array $mailData Notification data we send to the user
+	 * @param int $maxTime
 	 */
-	public function sendEmailToUser($user, $email, $lang, $timezone, $mailData) {
-		$l = $this->getLanguage($lang);
-		$dataHelper = new DataHelper(
-			\OC::$server->getActivityManager(),
-			new ParameterHelper(
-				\OC::$server->getActivityManager(),
-				new \OC\Files\View(''),
-				\OC::$server->getConfig(),
-				$l
-			),
-			$l
-		);
+	public function sendEmailToUser($userName, $email, $lang, $timezone, $maxTime) {
+		$user = $this->userManager->get($userName);
+		if (!$user instanceof IUser) {
+			return;
+		}
 
-		$activityList = array();
-		foreach ($mailData as $activity) {
+		list($mailData, $skippedCount) = $this->getItemsForUser($userName, $maxTime);
+
+		$l = $this->getLanguage($lang);
+		$this->dataHelper->setUser($userName);
+		$this->dataHelper->setL10n($l);
+
+		$oobaList = array();
+		foreach ($mailData as $ooba) {
 			$relativeDateTime = $this->dateFormatter->formatDateTimeRelativeDay(
-				$activity['amq_timestamp'],
+				$ooba['oobamq_timestamp'],
 				'long', 'medium',
 				new \DateTimeZone($timezone), $l
 			);
 
-			$activityList[] = array(
-				$dataHelper->translation(
-					$activity['amq_appid'], $activity['amq_subject'], unserialize($activity['amq_subjectparams'])
+			$oobaList[] = array(
+				$this->dataHelper->translation(
+					$ooba['oobamq_appid'], $ooba['oobamq_subject'], $this->dataHelper->getParameters($ooba['oobamq_subjectparams'])
 				),
 				$relativeDateTime,
 			);
 		}
 
-		$alttext = new \OCP\Template('oobactivity', 'email.notification', '');
-		$alttext->assign('username', \OCP\User::getDisplayName($user));
-		$alttext->assign('timeframe', $this->getLangForApproximatedTimeFrame($mailData[0]['amq_timestamp']));
-		$alttext->assign('activities', $activityList);
-		$alttext->assign('owncloud_installation', \OC_Helper::makeURLAbsolute('/'));
+		$alttext = new Template('ooba', 'email.notification', '');
+		$alttext->assign('username', $user->getDisplayName());
+		$alttext->assign('oobas', $oobaList);
+		$alttext->assign('skippedCount', $skippedCount);
+		$alttext->assign('owncloud_installation', $this->urlGenerator->getAbsoluteURL('/'));
 		$alttext->assign('overwriteL10N', $l);
 		$emailText = $alttext->fetchPage();
 
-		try {
-			\OCP\Util::sendMail(
-				$email, \OCP\User::getDisplayName($user),
-				$l->t('Activity notification'), $emailText,
-				$this->getSenderData('email'), $this->getSenderData('name')
-			);
-		} catch (\Exception $e) {
-			\OCP\Util::writeLog('Activity', 'A problem occurred while sending the e-mail. Please revisit your settings.', \OCP\Util::ERROR);
-		}
+		$message = $this->mailer->createMessage();
+		$message->setTo([$email => $user->getDisplayName()]);
+		$message->setSubject((string) $l->t('Ooba notification'));
+		$message->setPlainBody($emailText);
+		$message->setFrom([$this->getSenderData('email') => $this->getSenderData('name')]);
+		$this->mailer->send($message);
 	}
 
 	/**
@@ -237,14 +260,10 @@ class MailQueueHandler {
 		$queryParams = $affectedUsers;
 		array_unshift($queryParams, (int) $maxTime);
 
-		$query = \OCP\DB::prepare(
-			'DELETE FROM `*PREFIX*oobactivity_mq` '
-			. ' WHERE `amq_timestamp` <= ? '
-			. ' AND `amq_affecteduser` IN (' . $placeholders . ')');
-		$result = $query->execute($queryParams);
-
-		if (\OCP\DB::isError($result)) {
-			\OCP\Util::writeLog('Activity', \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
-		}
+		$query = $this->connection->prepare(
+			'DELETE FROM `*PREFIX*ooba_mq` '
+			. ' WHERE `oobamq_timestamp` <= ? '
+			. ' AND `oobamq_affecteduser` IN (' . $placeholders . ')');
+		$query->execute($queryParams);
 	}
 }

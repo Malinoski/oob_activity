@@ -1,33 +1,29 @@
-$(document).ready(function(){
-	$('#activity_notifications input[type=checkbox]').change(function(){
-		OC.msg.startSaving('#activity_notifications_msg');
-		var post = $( '#activity_notifications' ).serialize();
-		$.post(OC.generateUrl('/apps/activity/settings'), post, function(data) {
-			OC.msg.finishedSaving('#activity_notifications_msg', data);
-		});
-	});
+$(document).ready(function() {
+	function saveSettings() {
+		OC.msg.startSaving('#ooba_notifications_msg');
+		var post = $('#ooba_notifications').serialize();
 
-	$('#activity_notifications select').change(function(){
-		OC.msg.startSaving('#activity_notifications_msg');
-		var post = $( '#activity_notifications' ).serialize();
-		$.post(OC.generateUrl('/apps/activity/settings'), post, function(data) {
-			OC.msg.finishedSaving('#activity_notifications_msg', data);
+		$.post(OC.generateUrl('/apps/ooba/settings'), post, function(response) {
+			OC.msg.finishedSuccess('#ooba_notifications_msg', response.data.message);
 		});
-	});
+	}
 
-	$('#activity_notifications .activity_select_group').click(function(){
-		var selectGroup = '#activity_notifications .' + $(this).attr('data-select-group');
-		var checkedBoxes = $(selectGroup + ':checked').length;
-		$(selectGroup).attr('checked', true);
-		if (checkedBoxes === $(selectGroup + ':checked').length) {
+	var $oobaNotifications = $('#ooba_notifications');
+	$oobaNotifications.find('input[type=checkbox]').change(saveSettings);
+
+	$oobaNotifications.find('select').change(saveSettings);
+
+	$oobaNotifications.find('.ooba_select_group').click(function() {
+		var $selectGroup = '#ooba_notifications .' + $(this).attr('data-select-group');
+		var $filteredBoxes = $($selectGroup).not(':disabled');
+		var $checkedBoxes = $filteredBoxes.filter(':checked').length;
+
+		$filteredBoxes.attr('checked', true);
+		if ($checkedBoxes === $filteredBoxes.filter(':checked').length) {
 			// All values were already selected, so invert it
-			$(selectGroup).attr('checked', false);
+			$filteredBoxes.attr('checked', false);
 		}
 
-		OC.msg.startSaving('#activity_notifications_msg');
-		var post = $( '#activity_notifications' ).serialize();
-		$.post(OC.generateUrl('/apps/activity/settings'), post, function(data) {
-			OC.msg.finishedSaving('#activity_notifications_msg', data);
-		});
+		saveSettings();
 	});
 });

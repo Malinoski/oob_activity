@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -21,34 +21,34 @@
  *
  */
 
-namespace OCA\OobActivity;
+namespace OCA\Ooba;
 
 /**
  * Class Api
  *
- * @package OCA\OobActivity
+ * @package OCA\Ooba
  */
 class Api
 {
 	const DEFAULT_LIMIT = 30;
 
-	static public function get($param) {
+	static public function get() {
 		$app = new AppInfo\Application();
-		$data = $app->getContainer()->query('ActivityData');
+		$data = $app->getContainer()->query('OobaData');
 
 		$start = isset($_GET['start']) ? $_GET['start'] : 0;
 		$count = isset($_GET['count']) ? $_GET['count'] : self::DEFAULT_LIMIT;
 
-		$activities = $data->read(
+		$oobas = $data->read(
 			$app->getContainer()->query('GroupHelper'),
 			$app->getContainer()->query('UserSettings'),
 			$start, $count, 'all'
 		);
 
 		$entries = array();
-		foreach($activities as $entry) {
+		foreach($oobas as $entry) {
 			$entries[] = array(
-				'id' => $entry['activity_id'],
+				'id' => $entry['ooba_id'],
 				'subject' => (string) $entry['subjectformatted']['full'],
 				'message' => (string) $entry['messageformatted']['full'],
 				'file' => $entry['file'],

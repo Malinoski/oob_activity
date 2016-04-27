@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Joas Schilling
  * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
@@ -20,9 +20,11 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\OobActivity\Tests;
+namespace OCA\Ooba\Tests;
 
-use OCA\OobActivity\Data;
+use OC\OobaManager;
+use OCA\Ooba\Data;
+use OCA\Ooba\Tests\Mock\Extension;
 use OCP\Activity\IExtension;
 
 class ApiTest extends TestCase {
@@ -31,42 +33,42 @@ class ApiTest extends TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->originalWEBROOT =\OC::$WEBROOT;
+		$this->originalWEBROOT = \OC::$WEBROOT;
 		\OC::$WEBROOT = '';
-		\OC_User::createUser('activity-api-user1', 'activity-api-user1');
-		\OC_User::createUser('activity-api-user2', 'activity-api-user2');
+		\OC::$server->getUserManager()->createUser('ooba-api-user1', 'ooba-api-user1');
+		\OC::$server->getUserManager()->createUser('ooba-api-user2', 'ooba-api-user2');
 
-		$activities = array(
+		$oobas = array(
 			array(
-				'affectedUser' => 'activity-api-user1',
-				'subject' => 'created_self',
+				'affectedUser' => 'ooba-api-user1',
+				'subject' => 'subject1',
 				'subjectparams' => array('/A/B.txt'),
-				'type' => 'file_created',
+				'type' => 'type1',
 			),
 			array(
-				'affectedUser' => 'activity-api-user1',
-				'subject' => 'deleted_by',
-				'subjectparams' => array('/A/B.txt', 'Deleter'),
-				'type' => 'file_deleted',
+				'affectedUser' => 'ooba-api-user1',
+				'subject' => 'subject2',
+				'subjectparams' => array('/A/B.txt', 'User'),
+				'type' => 'type2',
 			),
 		);
 
-		$queryActivity = \OCP\DB::prepare('INSERT INTO `*PREFIX*oobactivity`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
+		$queryOoba = \OC::$server->getDatabaseConnection()->prepare('INSERT INTO `*PREFIX*ooba`(`app`, `subject`, `subjectparams`, `message`, `messageparams`, `file`, `link`, `user`, `affecteduser`, `timestamp`, `priority`, `type`)' . ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )');
 		$loop = 0;
-		foreach ($activities as $activity) {
-			$queryActivity->execute(array(
-				'files',
-				$activity['subject'],
-				serialize($activity['subjectparams']),
+		foreach ($oobas as $ooba) {
+			$queryOoba->execute(array(
+				'app1',
+				$ooba['subject'],
+				json_encode($ooba['subjectparams']),
 				'',
-				serialize(array()),
+				json_encode([]),
 				'file',
 				'link',
 				'user',
-				$activity['affectedUser'],
+				$ooba['affectedUser'],
 				time() + $loop,
 				IExtension::PRIORITY_MEDIUM,
-				$activity['type'],
+				$ooba['type'],
 			));
 			$loop++;
 		}
@@ -74,36 +76,43 @@ class ApiTest extends TestCase {
 
 	protected function tearDown() {
 		$data = new Data(
-			$this->getMock('\OCP\Activity\IManager')
+			$this->getMock('\OCP\Activity\IManager'),
+			\OC::$server->getDatabaseConnection(),
+			$this->getMock('\OCP\IUserSession')
 		);
 
-		$data->deleteActivities(array(
-			'affecteduser' => 'activity-api-user1',
-		));
-		\OC_User::deleteUser('activity-api-user1');
-		$data->deleteActivities(array(
-			'affecteduser' => 'activity-api-user2',
-		));
-		\OC_User::deleteUser('activity-api-user2');
-		$data->deleteActivities(array(
-			'type' => 'test',
+		$this->deleteUser($data, 'ooba-api-user1');
+		$this->deleteUser($data, 'ooba-api-user2');
+
+		$data->deleteOobas(array(
+			'app' => 'app1',
 		));
 		\OC::$WEBROOT = $this->originalWEBROOT;
 
 		parent::tearDown();
 	}
 
+	protected function deleteUser(Data $data, $uid) {
+		$data->deleteOobas(array(
+			'affecteduser' => $uid,
+		));
+		$user = \OC::$server->getUserManager()->get($uid);
+		if ($user) {
+			$user->delete();
+		}
+	}
+
 	public function getData() {
 		return array(
-			array('activity-api-user2', 0, 30, array()),
-			array('activity-api-user1', 0, 30, array(
+			array('ooba-api-user2', 0, 30, array()),
+			array('ooba-api-user1', 0, 30, array(
 				array(
 					'link' => 'link',
 					'file' => 'file',
 					'date' => null,
 					'id' => null,
 					'message' => '',
-					'subject' => 'Deleter deleted A/B.txt',
+					'subject' => 'Subject2 @User #A/B.txt',
 				),
 				array(
 					'link' => 'link',
@@ -111,27 +120,27 @@ class ApiTest extends TestCase {
 					'date' => null,
 					'id' => null,
 					'message' => '',
-					'subject' => 'You created A/B.txt',
-				),
-			)),
-			array('activity-api-user1', 0, 1, array(
-				array(
-					'link' => 'link',
-					'file' => 'file',
-					'date' => null,
-					'id' => null,
-					'message' => '',
-					'subject' => 'Deleter deleted A/B.txt',
+					'subject' => 'Subject1 #A/B.txt',
 				),
 			)),
-			array('activity-api-user1', 1, 1, array(
+			array('ooba-api-user1', 0, 1, array(
 				array(
 					'link' => 'link',
 					'file' => 'file',
 					'date' => null,
 					'id' => null,
 					'message' => '',
-					'subject' => 'You created A/B.txt',
+					'subject' => 'Subject2 @User #A/B.txt',
+				),
+			)),
+			array('ooba-api-user1', 1, 1, array(
+				array(
+					'link' => 'link',
+					'file' => 'file',
+					'date' => null,
+					'id' => null,
+					'message' => '',
+					'subject' => 'Subject1 #A/B.txt',
 				),
 			)),
 		);
@@ -144,8 +153,21 @@ class ApiTest extends TestCase {
 		$_GET['start'] = $start;
 		$_GET['count'] = $count;
 		\OC_User::setUserId($user);
-		$this->assertEquals($user, \OC_User::getUser());
-		$result = \OCA\OobActivity\Api::get(array('_route' => 'get_cloud_activity'));
+		$sessionUser = \OC::$server->getUserSession()->getUser();
+		$this->assertInstanceOf('OCP\IUser', $sessionUser);
+		$this->assertEquals($user, $sessionUser->getUID());
+
+		$oobaManager = new OobaManager(
+			$this->getMock('OCP\IRequest'),
+			$this->getMock('OCP\IUserSession'),
+			$this->getMock('OCP\IConfig')
+		);
+		$oobaManager->registerExtension(function() {
+			return new Extension(\OCP\Util::getL10N('ooba', 'en'), $this->getMock('\OCP\IURLGenerator'));
+		});
+		$this->overwriteService('OobaManager', $oobaManager);
+		$result = \OCA\Ooba\Api::get(array('_route' => 'get_cloud_ooba'));
+		$this->restoreService('OobaManager');
 
 		$this->assertEquals(100, $result->getStatusCode());
 		$data = $result->getData();

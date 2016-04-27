@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Frank Karlitschek
  * @copyright 2013 Frank Karlitschek frank@owncloud.org
@@ -21,41 +21,27 @@
  *
  */
 
-namespace OCA\OobActivity\AppInfo;
-
-require_once 'apps/oobactivity/ext/activityhelper.php';
-require_once 'apps/oobactivity/ext/activitydata.php';
-require_once 'apps/oobactivity/ext/activitylogger.php';
-
-//TODO
-//\OCA\OobActivity\ext\ActivityHelper::prepareDb();
+namespace OCA\Ooba\AppInfo;
 
 $app = new Application();
 $c = $app->getContainer();
 
 // add an navigation entry
-$navigationEntry = array(
-	'id' => $c->getAppName(),	
-	'order' => 1,
-	'name' => $c->query('ActivityL10N')->t('Activity'),
-	'href' => $c->query('URLGenerator')->linkToRoute('oobactivity.Activities.showList'),
-	'icon' => $c->query('URLGenerator')->imagePath('oobactivity', 'activity.svg'),
-);
-
-// Removido: visualização de atividades
-//$c->getServer()->getNavigationManager()->add($navigationEntry);
+$navigationEntry = function () use ($c) {
+	return [
+		'id' => $c->getAppName(),
+		'order' => 1,
+		'name' => $c->query('OobaL10N')->t('Ooba'),
+		'href' => $c->query('URLGenerator')->linkToRoute('ooba.Oobas.showList'),
+		'icon' => $c->query('URLGenerator')->imagePath('ooba', 'ooba.svg'),
+	];
+};
+$c->getServer()->getNavigationManager()->add($navigationEntry);
 
 // register the hooks for filesystem operations. All other events from other apps has to be send via the public api
-\OCA\OobActivity\HooksStatic::register();
-\OCA\OobActivity\Consumer::register($c->getServer()->getActivityManager(), $c);
+\OCA\Ooba\FilesHooksStatic::register();
+\OCP\Util::connectHook('OC_User', 'post_deleteUser', 'OCA\Ooba\Hooks', 'deleteUser');
+\OCA\Ooba\Consumer::register($c->getServer()->getActivityManager(), $c);
 
-// Somente para uso de registro em banco, mas esta pendente:
-
-// Removido: Notificacoes (para registro em log, o servidor log eh responsavel por isto)
 // Personal settings for notifications and emails
-//\OCP\App::registerPersonal($c->getAppName(), 'personal');
-
-// Removido: Notificacoes (para registro em log, o servidor log eh responsavel por isto)
-// Cron job for sending Emails
-//\OCP\Backgroundjob::registerJob('OCA\OobActivity\BackgroundJob\EmailNotification');
-//\OCP\Backgroundjob::registerJob('OCA\OobActivity\BackgroundJob\ExpireActivities');
+\OCP\App::registerPersonal($c->getAppName(), 'personal');

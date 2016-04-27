@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ownCloud - Activity App
+ * ownCloud - Ooba App
  *
  * @author Frank Karlitschek
  * @copyright 2013 Frank Karlitschek frank@owncloud.org
@@ -21,24 +21,23 @@
  *
  */
 
-namespace OCA\OobActivity\AppInfo;
+namespace OCA\Ooba\AppInfo;
 
-/** @var $this \OC\Route\Router */
-$this->create('activity.rss', 'rss.php')
-	->actionInclude('activity/rss.php');
+use OCP\API;
 
 // Register an OCS API call
-\OC_API::register(
+API::register(
 	'get',
-	'/cloud/activity',
-	array('OCA\OobActivity\Api', 'get'),
-	'oobactivity'
+	'/cloud/ooba',
+	array('OCA\Ooba\Api', 'get'),
+	'ooba'
 );
 
 $application = new Application();
 $application->registerRoutes($this, ['routes' => [
 	['name' => 'Settings#personal', 'url' => '/settings', 'verb' => 'POST'],
 	['name' => 'Settings#feed', 'url' => '/settings/feed', 'verb' => 'POST'],
-	['name' => 'Activities#showList', 'url' => '/', 'verb' => 'GET'],
-	['name' => 'Activities#fetch', 'url' => '/activities/fetch', 'verb' => 'GET'],
+	['name' => 'Oobas#showList', 'url' => '/', 'verb' => 'GET'],
+	['name' => 'Oobas#fetch', 'url' => '/oobas/fetch', 'verb' => 'GET'],
+	['name' => 'Feed#show', 'url' => '/rss.php', 'verb' => 'GET'],
 ]]);
