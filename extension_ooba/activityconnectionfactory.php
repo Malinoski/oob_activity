@@ -12,7 +12,7 @@ class ActivityConnectionFactory extends ConnectionFactory{
 	 */
 	public function createOOBActivityConnectionParams() {
 		
-		syslog(LOG_INFO,'oobactivity - createOOBActivityConnectionParams - config.php - dbuser:'.\OCP\Config::getAppValue('oobactivity', 'dbuser', 'error'));
+		//syslog(LOG_INFO,'oobactivity - createOOBActivityConnectionParams - config.php - dbuser:'.\OCP\Config::getAppValue('oobactivity', 'dbuser', 'error'));
 		$type = \OCP\Config::getAppValue('oobactivity','dbtype', 'sqlite');
 		
 		$connectionParams = array(
@@ -21,7 +21,7 @@ class ActivityConnectionFactory extends ConnectionFactory{
 			'dbtype' =>  $type,
 		);
 		//syslog(LOG_INFO,'++++++333+++++++'.json_encode($connectionParams));
-		$name =  \OCP\Config::getAppValue('oobactivity','dbname', 'owncloud');
+		$name =  \OCP\Config::getAppValue('oobactivity','dbname');
 
 		if ($this->normalizeType($type) === 'sqlite3') {
 			$dataDir =  \OCP\Config::getAppValue('oobactivity',"datadirectory", \OC::$SERVERROOT . '/data');

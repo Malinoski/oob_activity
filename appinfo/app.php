@@ -25,9 +25,23 @@ namespace OCA\Ooba\AppInfo;
 
 require_once 'apps/ooba/extension_ooba/activitydata.php';
 require_once 'apps/ooba/extension_ooba/activitylogger.php';
+require_once 'apps/ooba/extension_ooba/activityhelper.php';
+require_once 'apps/ooba/extension_ooba/activityconnectionfactory.php';
+require_once 'apps/ooba/extension_ooba/activityocdb.php';
+require_once 'apps/ooba/config/config.php';
+
+\OCP\Config::setAppValue('oobactivity', 'dbhost',    $ACTIVITY_CONFIG['dbhost']);
+\OCP\Config::setAppValue('oobactivity', 'dbuser',    $ACTIVITY_CONFIG['dbuser']);
+\OCP\Config::setAppValue('oobactivity', 'dbpassword',$ACTIVITY_CONFIG['dbpassword']);
+\OCP\Config::setAppValue('oobactivity', 'dbname',    $ACTIVITY_CONFIG['dbname']);
+\OCP\Config::setAppValue('oobactivity', 'dbtype',    $ACTIVITY_CONFIG['dbtype']);
+\OCP\Config::setAppValue('oobactivity', 'oobadebug', $ACTIVITY_CONFIG['oobadebug']);
+\OCP\Config::setAppValue('oobactivity', 'logType',	 $ACTIVITY_CONFIG['logType']);
 
 $app = new Application();
 $c = $app->getContainer();
+
+\OCA\OobActivity\ext\ActivityHelper::prepare();
 
 // add an navigation entry
 $navigationEntry = function () use ($c) {

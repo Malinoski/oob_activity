@@ -38,6 +38,8 @@ use OCA\Ooba\ParameterHelper;
 use OCA\Ooba\UserSettings;
 use OCP\AppFramework\App;
 use OCP\IContainer;
+use OCA\OobActivity\ext\ActivityHelper;
+use OCA\OobActivity\Service\DebugService;
 
 class Application extends App {
 	public function __construct (array $urlParams = array()) {
@@ -47,13 +49,15 @@ class Application extends App {
 		/**
 		 * Ooba Services
 		 */
+		
 		$container->registerService('OobaData', function(IContainer $c) {
 			/** @var \OC\Server $server */
 			$server = $c->query('ServerContainer');
 			//return new Data( //original
 			return new ActivityData( // ooba
 				$server->getActivityManager(),
-				$server->getDatabaseConnection(),
+				//$server->getDatabaseConnection(),
+				\OCA\OobActivity\ext\ActivityHelper::getDatabaseConnection(),
 				$server->getUserSession()
 			);
 		});
@@ -233,5 +237,10 @@ class Application extends App {
 				$c->query('CurrentUID')
 			);
 		});
+		
+	
+// 		$container->registerService('Logger', function($c) {
+// 			return $c->query('ServerContainer')->getLogger();
+// 		});
 	}
 }

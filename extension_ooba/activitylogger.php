@@ -87,7 +87,7 @@ class ActivityLogger {
 		openlog('oobactivity', LOG_NDELAY | LOG_PID, LOG_USER);
 		
 		//Write log
-		syslog(LOG_INFO,$messageSD);	
+		syslog(LOG_INFO,$messageSD);
 	}
 }
 
