@@ -1,7 +1,7 @@
 OC.L10N.register(
     "ooba",
     {
-    "Ooba" : "Atividade",
+    "Ooba" : "Out-Of-Band Actvity",
     "Personal ooba feed for %s" : "Atividade pessoal de feed para %s",
     "Your feed URL is invalid" : "O seu URL de emissão é inválido",
     "Your settings have been updated." : "As suas definições foram atualizadas.",
