@@ -6,7 +6,8 @@ $ACTIVITY_CONFIG = array (
 		
   //Database configuration
   'dbtype' => 'pgsql',
-  'dbhost' => 'localhost',
+  //'dbhost' => 'localhost',
+  'dbhost' => '10.0.1.78',
   'dbuser' => 'username',
   'dbpassword' => 'password',
   'dbname' => 'owncloud823external',

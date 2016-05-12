@@ -72,6 +72,8 @@ class ActivityHelper {
 	public static function checkDatabase() {
 		ActivityHelper::oobaDebug("- Preparing oobactivity database:");
 		
+		$result = false;
+		
 		//Check Database
 		$username 			= \OCP\Config::getAppValue('oobactivity','dbuser');
 		$password 			= \OCP\Config::getAppValue('oobactivity','dbpassword');
@@ -79,21 +81,24 @@ class ActivityHelper {
 		$oobdatabase		= \OCP\Config::getAppValue('oobactivity','dbname');
 				
 		//TODO - Was not found in owncloud Doctrine how to create the database dynamicaly, so, was used checkPgSQLDatabase for this purpose.
-		if(self::checkPgSQLDatabase($username, $password, $host, $oobdatabase)){ 
-			//Load Schema
-			$oobaDatabaseFile = __DIR__.'/../appinfo/oobadatabase.xml';
-			ActivityHelper::oobaDebug("ooba database xml file: ".$oobaDatabaseFile);
+		if(self::checkPgSQLDatabase($username, $password, $host, $oobdatabase)){
 			
 			//Check Tables
 			if(!Activity_OC_DB::tableExists('ooba') && !Activity_OC_DB::tableExists('ooba_mq')){
-				ActivityHelper::oobaDebug('ooba tables create =) ');
+				//Load Schema
+				$oobaDatabaseFile = __DIR__.'/../appinfo/oobadatabase.xml';
+				ActivityHelper::oobaDebug("ooba database xml file: ".$oobaDatabaseFile);
+					
 				Activity_OC_DB::createDbFromStructure($oobaDatabaseFile);
+				ActivityHelper::oobaDebug('ooba tables create =) ');
+				$result = true;
 			}else {
-				ActivityHelper::oobaDebug('ooba tables are already exist');
+				ActivityHelper::oobaDebug('ooba tables are already exist');				
 			}	
 		}else{
 			return false;
 		}
+		return $result;
 	}
 	
 	/**
@@ -118,7 +123,7 @@ class ActivityHelper {
 	 * @return bool
 	 */
 	public static function checkPgSQLDatabase($username, $password, $host, $database){
-
+		$result = false;
 		$dbtype	= \OCP\Config::getAppValue('oobactivity','dbtype');
 		ActivityHelper::oobaDebug("ActivityHelper - checkPgSQLDatabase: username=".$username.', password='.$password.', host='.$host.', database='.$database.', dbtype='.$dbtype);
 		
@@ -140,20 +145,24 @@ class ActivityHelper {
 		$conn = new \Doctrine\DBAL\Connection($connectionOptions, $driver);
 		
 		//Check connection
-		$result = $conn->ping();
-		if($result){
-			ActivityHelper::oobaDebug("- postgresql connection success!");
-			$sm = $conn->getSchemaManager();
-			$databases = $sm->listDatabases();
-			ActivityHelper::oobaDebug("- check if oobactivity database(".$database.") exists in postgresql: ".json_encode($databases));
-			if(!in_array($database, $databases)){
-				$sm->createDatabase($database);
-				ActivityHelper::oobaDebug("- the oobactivity database (".$database.") was created!");
+		try{
+			$result = $conn->ping();
+			if($result){
+				ActivityHelper::oobaDebug("- postgresql connection success!");
+				$sm = $conn->getSchemaManager();
+				$databases = $sm->listDatabases();
+				ActivityHelper::oobaDebug("- check if oobactivity database(".$database.") exists in postgresql: ".json_encode($databases));
+				if(!in_array($database, $databases)){
+					$sm->createDatabase($database);
+					ActivityHelper::oobaDebug("- the oobactivity database (".$database.") was created!");
+				}else{
+					ActivityHelper::oobaDebug("- the oobactivity database (".$database.") already exists!");
+				}			
 			}else{
-				ActivityHelper::oobaDebug("- the oobactivity database (".$database.") already exists!");
-			}			
-		}else{
-			ActivityHelper::oobaDebug("- postgresql connection failed. =(");			
+				ActivityHelper::oobaDebug("- postgresql connection failed. =(");			
+			}
+		}catch (\Exception $ex){
+			
 		}
 		return $result;
 	}
