@@ -130,7 +130,8 @@ class Application extends App {
 
 			return new MailQueueHandler(
 				$server->getDateTimeFormatter(),
-				$server->getDatabaseConnection(),
+				//$server->getDatabaseConnection(),
+				\OCA\OobActivity\ext\ActivityHelper::getDatabaseConnection(),
 				$c->query('DataHelper'),
 				$server->getMailer(),
 				$server->getURLGenerator(),

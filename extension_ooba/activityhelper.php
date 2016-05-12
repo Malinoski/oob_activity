@@ -23,11 +23,7 @@ class ActivityHelper {
 	
 	//TODO
 	public static function prepare() {
-		openlog('oobactivity', LOG_NDELAY | LOG_PID, LOG_USER); // must be executed for activity syslo and/or debug sylog		
-		
-		ActivityHelper::oobaDebug("----------------------");
-		ActivityHelper::oobaDebug("# Preparing oobactivity");
-		
+		ActivityHelper::oobaDebug("########### Preparing oobactivity");		
 		return self::checkDatabase();	
 	}
 	
@@ -39,11 +35,11 @@ class ActivityHelper {
 	public static function getDatabaseConnection() {
 		$connection = null;
 		try {
-			ActivityHelper::oobaDebug("- getDatabaseConnection");
+			ActivityHelper::oobaDebug("- getDatabaseConnection:...");
 			
 			$factory = new ActivityConnectionFactory();
 			$connectionParams = $factory->createOOBActivityConnectionParams();
-			ActivityHelper::oobaDebug("- Params:".json_encode($connectionParams));			
+			//ActivityHelper::oobaDebug("- connection params: ".json_encode($connectionParams));			
 	 		$connection = $factory->getConnection($connectionParams['dbtype'], $connectionParams);
 	 		
 	 		//TODO Check this
@@ -65,40 +61,41 @@ class ActivityHelper {
  		} catch (\Exception $e) { 			
  			ActivityHelper::oobaDebug('- ooba prepare exception! =(');
  		}	
+ 		ActivityHelper::oobaDebug("- getDatabaseConnection: OK");
  		return $connection;		
 
 	}
 	
+	/**
+	 * @return bool
+	 */
 	public static function checkDatabase() {
-		ActivityHelper::oobaDebug("- Preparing oobactivity database:");
-		
-		$result = false;
+		ActivityHelper::oobaDebug("- checkDatabase:");
 		
 		//Check Database
-		$username 			= \OCP\Config::getAppValue('oobactivity','dbuser');
-		$password 			= \OCP\Config::getAppValue('oobactivity','dbpassword');
-		$host				= \OCP\Config::getAppValue('oobactivity','dbhost');
-		$oobdatabase		= \OCP\Config::getAppValue('oobactivity','dbname');
+		$username 		= \OCP\Config::getAppValue('oobactivity','dbuser');
+		$password 		= \OCP\Config::getAppValue('oobactivity','dbpassword');
+		$host			= \OCP\Config::getAppValue('oobactivity','dbhost');
+		$oobdatabase 	= \OCP\Config::getAppValue('oobactivity','dbname');
 				
 		//TODO - Was not found in owncloud Doctrine how to create the database dynamicaly, so, was used checkPgSQLDatabase for this purpose.
 		if(self::checkPgSQLDatabase($username, $password, $host, $oobdatabase)){
 			
 			//Check Tables
+			ActivityHelper::oobaDebug("- check table exists (ooba and ooba_mq)");
 			if(!Activity_OC_DB::tableExists('ooba') && !Activity_OC_DB::tableExists('ooba_mq')){
 				//Load Schema
 				$oobaDatabaseFile = __DIR__.'/../appinfo/oobadatabase.xml';
-				ActivityHelper::oobaDebug("ooba database xml file: ".$oobaDatabaseFile);
+				ActivityHelper::oobaDebug("- ooba database xml file: ".$oobaDatabaseFile);
 					
 				Activity_OC_DB::createDbFromStructure($oobaDatabaseFile);
-				ActivityHelper::oobaDebug('ooba tables create =) ');
-				$result = true;
+				ActivityHelper::oobaDebug('- ooba tables create =) ');								
 			}else {
-				ActivityHelper::oobaDebug('ooba tables are already exist');				
+				ActivityHelper::oobaDebug('- ooba tables are already exist');				
 			}	
-		}else{
-			return false;
+			return true;
 		}
-		return $result;
+		return false;		
 	}
 	
 	/**
@@ -110,9 +107,9 @@ class ActivityHelper {
 		$oobadebug = \OCP\Config::getAppValue('oobactivity','oobadebug', 'off');
 		
 		if($oobadebug == "owncloud"){
-			\OC_Log_Owncloud::write('oobactivty', $message, LOG_DEBUG);
+			\OC_Log_Owncloud::write('oobactivty', 'OOBADEBUG: '.$message, LOG_DEBUG);
 		} else if($oobadebug == "syslog"){
-			syslog(LOG_INFO, $message);
+			syslog(LOG_INFO, 'OOBADEBUG: '.$message);
 		} 
 	}
 	
@@ -125,7 +122,7 @@ class ActivityHelper {
 	public static function checkPgSQLDatabase($username, $password, $host, $database){
 		$result = false;
 		$dbtype	= \OCP\Config::getAppValue('oobactivity','dbtype');
-		ActivityHelper::oobaDebug("ActivityHelper - checkPgSQLDatabase: username=".$username.', password='.$password.', host='.$host.', database='.$database.', dbtype='.$dbtype);
+		//ActivityHelper::oobaDebug("- database params: username=".$username.', password='.$password.', host='.$host.', database='.$database.', dbtype='.$dbtype);
 		
 		if ($dbtype != 'pgsql'){
 			$message = " - dbtype=".$dbtype.": Sorry, the current version of oobactivity only work with postgresql! =(. Use 'pgsql'. in config.xml for oobactivity";			
@@ -148,15 +145,15 @@ class ActivityHelper {
 		try{
 			$result = $conn->ping();
 			if($result){
-				ActivityHelper::oobaDebug("- postgresql connection success!");
+				ActivityHelper::oobaDebug("- postgresql connection ping success.");
 				$sm = $conn->getSchemaManager();
 				$databases = $sm->listDatabases();
-				ActivityHelper::oobaDebug("- check if oobactivity database(".$database.") exists in postgresql: ".json_encode($databases));
+				//ActivityHelper::oobaDebug("- check if oobactivity database \"".$database."\") exists.".json_encode($databases));
 				if(!in_array($database, $databases)){
 					$sm->createDatabase($database);
 					ActivityHelper::oobaDebug("- the oobactivity database (".$database.") was created!");
 				}else{
-					ActivityHelper::oobaDebug("- the oobactivity database (".$database.") already exists!");
+					ActivityHelper::oobaDebug("- the oobactivity database (".$database.") already exists");
 				}			
 			}else{
 				ActivityHelper::oobaDebug("- postgresql connection failed. =(");			

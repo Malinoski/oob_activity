@@ -104,9 +104,9 @@ class ActivityData extends \OCA\Ooba\Data {
 		
 		$logType = Config::getAppValue('oobactivity', 'logType','both');
 		
-		syslog(LOG_INFO,$logType.': '.strcmp( $logType, 'both' ).'or'.strcmp( $logType, 'database').'==='.( strcmp( $logType, 'both' ) or strcmp( $logType, 'database')));
+		//syslog(LOG_INFO,$logType.': '.strcmp( $logType, 'both' ).'or'.strcmp( $logType, 'database').'==='.( strcmp( $logType, 'both' ) or strcmp( $logType, 'database')));
 		if ( (strcmp( $logType, 'both')==0) or (strcmp( $logType, 'database')==0)) {
-			syslog(LOG_INFO, 'entrou');
+			//syslog(LOG_INFO, 'entrou');
 			// store in DB
 			$queryBuilder = $this->connection->getQueryBuilder ();
 			$queryBuilder->insert ( 'ooba' )->values ( [ 

@@ -38,12 +38,16 @@ require_once 'apps/ooba/config/config.php';
 \OCP\Config::setAppValue('oobactivity', 'oobadebug', $ACTIVITY_CONFIG['oobadebug']);
 \OCP\Config::setAppValue('oobactivity', 'logType',	 $ACTIVITY_CONFIG['logType']);
 
+openlog('oobactivity', LOG_NDELAY | LOG_PID, LOG_USER); // must be executed for activity syslo and/or debug sylog
+
 $app = new Application();
 $c = $app->getContainer();
 
 if(!\OCA\OobActivity\ext\ActivityHelper::prepare()){
+	\OCA\OobActivity\ext\ActivityHelper::oobaDebug("- oobactivity prepare failed!");
 	return;
 }
+\OCA\OobActivity\ext\ActivityHelper::oobaDebug("- oobactivity prepare success!");
 
 // add an navigation entry
 $navigationEntry = function () use ($c) {
