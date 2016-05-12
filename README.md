@@ -22,6 +22,17 @@ User activity types:
 
 ## Download
 
+v1.3.1 [in developemt..)
+- owncloud version: 8.2.3
+- Requirements: PostgreSQL
+- Notes:
+	- Syslog register.
+	- External dababase register.
+	- File configuration, which allow activity registry for one or both register types (syslog / external database).
+	- Some debug mode, enabled in [owncloud home]/apps/activity/config/config.xml.
+	- Is not required to uninstall the default activity app.
+	- Automated installation added.
+
 v1.3 [download](https://github.com/Malinoski/oob_activity/releases/tag/oob_activity-v1.3)
 - owncloud version: 8.0.5
 - Notes:

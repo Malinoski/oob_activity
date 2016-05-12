@@ -41,7 +41,9 @@ require_once 'apps/ooba/config/config.php';
 $app = new Application();
 $c = $app->getContainer();
 
-\OCA\OobActivity\ext\ActivityHelper::prepare();
+if(!\OCA\OobActivity\ext\ActivityHelper::prepare()){
+	return;
+}
 
 // add an navigation entry
 $navigationEntry = function () use ($c) {
