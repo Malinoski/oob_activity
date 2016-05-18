@@ -22,7 +22,7 @@ User activity types:
 
 ## Download
 
-v1.3.1 [in developemt..)
+v1.3.1 [in development..]
 - owncloud version: 8.2.3
 - Requirements: PostgreSQL
 - Notes:
@@ -63,7 +63,7 @@ v1.0 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 
 ## Install
 
-This section shows how to install oob_activity v1.3 (for old releases check the respective README.txt).
+This section shows how to install oob_activity v1.3.1 (for old releases check the respective README.txt).
 
 1. Backup your ownCloud and database servers.
 
