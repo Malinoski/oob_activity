@@ -72,4 +72,4 @@ $c->getServer()->getNavigationManager()->add($navigationEntry);
 \OCA\Ooba\Consumer::register($c->getServer()->getActivityManager(), $c);
 
 // Personal settings for notifications and emails
-\OCP\App::registerPersonal($c->getAppName(), 'personal');
+//\OCP\App::registerPersonal($c->getAppName(), 'personal');
