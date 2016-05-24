@@ -6,12 +6,11 @@ $ACTIVITY_CONFIG = array (
 		
   //Database configuration
   'dbtype' => 'pgsql',
-  //'dbhost' => 'localhost',
   'dbhost' => 'localhost',
   'dbuser' => 'username',
   'dbpassword' => 'password',
-  'dbname' => 'owncloud823external',
+  'dbname' => 'externaldb',
 		
   //Personal oobactivity development debug: 'syslog'(default syslog info ubuntu: /var/log/syslog), 'owncloud' (for owncloud.log) or '' (for none).
-  'oobadebug' => 'syslog',
+  'oobadebug' => '',
 );
