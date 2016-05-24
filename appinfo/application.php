@@ -146,8 +146,8 @@ class Application extends App {
 			$server = $c->query('ServerContainer');
 			$rssToken = ($c->query('CurrentUID') !== '') ? $server->getConfig()->getUserValue($c->query('CurrentUID'), 'ooba', 'rsstoken') : '';
 
-			//return new Navigation(
-			return new ExtendedNavigation(
+			return new Navigation(
+			//return new ExtendedNavigation(
 				$c->query('OobaL10N'),
 				$server->getActivityManager(),
 				$server->getURLGenerator(),
