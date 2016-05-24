@@ -37,7 +37,10 @@ $application = new Application();
 $application->registerRoutes($this, ['routes' => [
 	['name' => 'Settings#personal', 'url' => '/settings', 'verb' => 'POST'],
 	['name' => 'Settings#feed', 'url' => '/settings/feed', 'verb' => 'POST'],
-	['name' => 'Oobas#showList', 'url' => '/', 'verb' => 'GET'],
-	['name' => 'Oobas#fetch', 'url' => '/oobas/fetch', 'verb' => 'GET'],
+	//['name' => 'Oobas#showList', 'url' => '/', 'verb' => 'GET'],
+	['name' => 'ActivitiesExtension#showList', 'url' => '/', 'verb' => 'GET'], //preserving original activity by inheritance
+	//['name' => 'Oobas#fetch', 'url' => '/oobas/fetch', 'verb' => 'GET'],
+	['name' => 'ActivitiesExtension#fetch', 'url' => '/oobas/fetch', 'verb' => 'GET'], //preserving original activity by inheritance
+	['name' => 'ActivitiesExtension#showSyslog', 'url' => '/', 'verb' => 'GET'], //ooba extension
 	['name' => 'Feed#show', 'url' => '/rss.php', 'verb' => 'GET'],
 ]]);

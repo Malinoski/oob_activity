@@ -24,7 +24,8 @@ namespace OCA\Ooba\AppInfo;
 
 use OC\Files\View;
 use OCA\Ooba\Consumer;
-use OCA\Ooba\Controller\Oobas;
+//use OCA\Ooba\Controller\Oobas;
+use OCA\Ooba\Controller\ActivitiesExtension;
 use OCA\Ooba\Controller\Feed;
 use OCA\Ooba\Controller\Settings;
 //use OCA\Ooba\Data; // original
@@ -40,6 +41,7 @@ use OCP\AppFramework\App;
 use OCP\IContainer;
 use OCA\OobActivity\ext\ActivityHelper;
 use OCA\OobActivity\Service\DebugService;
+use OCA\OobActivity\ExtendedNavigation;
 
 class Application extends App {
 	public function __construct (array $urlParams = array()) {
@@ -144,7 +146,8 @@ class Application extends App {
 			$server = $c->query('ServerContainer');
 			$rssToken = ($c->query('CurrentUID') !== '') ? $server->getConfig()->getUserValue($c->query('CurrentUID'), 'ooba', 'rsstoken') : '';
 
-			return new Navigation(
+			//return new Navigation(
+			return new ExtendedNavigation(
 				$c->query('OobaL10N'),
 				$server->getActivityManager(),
 				$server->getURLGenerator(),
@@ -201,11 +204,13 @@ class Application extends App {
 			);
 		});
 
-		$container->registerService('OobasController', function(IContainer $c) {
+		//$container->registerService('OobasController', function(IContainer $c) {
+		$container->registerService('ActivitiesExtensionController', function(IContainer $c) {
 			/** @var \OC\Server $server */
 			$server = $c->query('ServerContainer');
 
-			return new Oobas(
+			//return new Oobas(
+			return new ActivitiesExtension(
 				$c->query('AppName'),
 				$server->getRequest(),
 				$c->query('OobaData'),

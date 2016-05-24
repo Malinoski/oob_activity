@@ -63,20 +63,34 @@ v1.0 [download](https://github.com/Malinoski/oob_activity/releases/tag/v1.0)
 
 ## Install
 
-This section shows how to install oob_activity v1.3.1 (for old releases check the respective README.txt).
+Modify the brackets `[ ]` in the examples below.
 
 1. Backup your ownCloud and database servers.
 
 2. Get and configure:
   * Download and extract the last release.
-  * Rename the extracted folder to "oobactivity".
-  * Move "oobactivity" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
-  * Grant privilegies to "oobactivity" folder.
-<br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/oobactivity`).
+  * Rename the extracted folder to "ooba".
+  * Move "ooba" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
+  * Grant privilegies to "ooba" folder.
+<br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/ooba`).
 
 3. Configure your ownCloud server:
   * Login as administrator in your ownCloud server (ex.: http://[localhost]/[owncloud])
-  * Activate the oobactivity app. (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
+  * Activate the oob_activity app. (ex.: `http://[localhost]/[owncloud]/index.php/settings/apps?installed`).
+
+## Uninstall
+
+Modify the brackets `[ ]` in the examples below.
+
+1. Delete oob_activity folder.
+<br/> (ex.: `rm -rf /var/www/html/[owncloud]/apps/ooba`).
+
+2. Delete all oob_activity database configurations: 'ooba' and 'oobactivity' ids rows from oc_appconfig table).
+<br/> (ex.: `sudo -u postgres -H -- psql -d [owncloud database name] -c "delete from oc_appconfig where appid='ooba'"`).
+<br/> (ex.: `sudo -u postgres -H -- psql -d [owncloud database name] -c "delete from oc_appconfig where appid='oobactivity'"`).
+
+3. Delete the oob_activity external database.
+<br/> (ex.: `sudo -u postgres -H -- psql -c "drop database [external database name]"`).
 
 ## Acknowledgements
 This development has been funded by [FINEP](http://www.finep.gov.br), the Brazilian Innovation Agency.

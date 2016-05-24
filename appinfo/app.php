@@ -28,6 +28,8 @@ require_once 'apps/ooba/extension_ooba/activitylogger.php';
 require_once 'apps/ooba/extension_ooba/activityhelper.php';
 require_once 'apps/ooba/extension_ooba/activityconnectionfactory.php';
 require_once 'apps/ooba/extension_ooba/activityocdb.php';
+require_once 'apps/ooba/extension_ooba/extendednavigation.php';
+require_once 'apps/ooba/controller/activitiesextension.php';
 require_once 'apps/ooba/config/config.php';
 
 \OCP\Config::setAppValue('oobactivity', 'dbhost',    $ACTIVITY_CONFIG['dbhost']);
@@ -55,7 +57,10 @@ $navigationEntry = function () use ($c) {
 		'id' => $c->getAppName(),
 		'order' => 1,
 		'name' => $c->query('OobaL10N')->t('Ooba'),
-		'href' => $c->query('URLGenerator')->linkToRoute('ooba.Oobas.showList'),
+		 // Na linha abaixo, quando a pagina é carregada, todas as atividades sao apresentadas ('all'). O controller Ooba nao sera usado, mas sim um controller como uma experiencia. 
+		 // A ideia é utilizar herancas para impactar o minimo possivel nas classas originais do activity padrão (ps o controller oobas ja foi modificado e era o arquivo controller/ activities.php, mas a ideia deixalo intacto).
+  		'href' => $c->query('URLGenerator')->linkToRoute('ooba.ActivitiesExtension.showList'),
+		//'href' => $c->query('URLGenerator')->linkToRoute('ooba.Oobas.showList'),
 		'icon' => $c->query('URLGenerator')->imagePath('ooba', 'ooba.svg'),
 	];
 };

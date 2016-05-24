@@ -123,6 +123,8 @@ class Oobas extends Controller {
 	 * @return TemplateResponse
 	 */
 	public function showList($filter = 'all') {
+		\OCA\OobActivity\ext\ActivityHelper::oobaDebug("------------------------------------------------ Hii controller =((((((((( !!!!!!!!!!!!!!!");
+		
 		$filter = $this->data->validateFilter($filter);
 
 		return new TemplateResponse('ooba', 'stream.body', [
