@@ -1,19 +1,13 @@
 <?xml version="1.0"?>
 <info>
 	<id>ooba</id>
-	<name>Ooba</name>
+	<name>Out-Of-Band Activity</name>
 	<description>
-		This application enables users to view actions related to their files in ownCloud.
-		Once enabled, users will see a new icon “Ooba” in their apps menu.
-		When clicked, a new page appears for users to track the ooba related to files – from new files, to deleted files, move, rename, updates and shared ooba.
-		The user can configure their individual ooba settings in their personal menu.
-		This sets the type of ooba to record, as well as whether to the user sees their own oobas,
-		whether these are only available online, and whether they get an email digest on a regular basis.
-		More information is available in the Ooba documentation.
+		The oob_activity app modifies the original app activity(https://github.com/owncloud/activity),  provided for ownCloud.
+		More information is available in https://github.com/Malinoski/oob_activity
 	</description>
-
 	<licence>AGPL</licence>
-	<author>Frank Karlitschek, Joas Schilling</author>
+	<author>iMalinoski</author>
 	<shipped>true</shipped>
 	<version>2.1.4</version>
 	<default_enable/>
