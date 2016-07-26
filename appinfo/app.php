@@ -73,3 +73,5 @@ $c->getServer()->getNavigationManager()->add($navigationEntry);
 
 // Personal settings for notifications and emails
 //\OCP\App::registerPersonal($c->getAppName(), 'personal');
+
+\OCP\App::registerAdmin($c->getAppName(), 'adminsettings');

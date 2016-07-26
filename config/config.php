@@ -12,5 +12,5 @@ $ACTIVITY_CONFIG = array (
   'dbname' => 'externaldb',
 		
   //Personal oobactivity development debug: 'syslog'(default syslog info ubuntu: /var/log/syslog), 'owncloud' (for owncloud.log) or '' (for none).
-  'oobadebug' => 'syslog',
+  'oobadebug' => '',
 );
