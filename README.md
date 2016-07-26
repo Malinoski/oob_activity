@@ -68,9 +68,11 @@ Modify the brackets `[ ]` in the examples below.
 2. Get and configure:
   * Download and extract the last release.
   * Rename the extracted folder to "ooba".
-  * Move "ooba" folder to the ownCloud's app folder (`/[path_to_owncloud]/apps/`).
+  * Move above folder to the ownCloud's app (`/[path_to_owncloud]/apps/`).
   * Grant privilegies to "ooba" folder.
 <br/> (ex.: `chown -R www-data:www-data /[path_to_owncloud]/apps/ooba`).
+  * Allow access to syslog files in owncloud server. 
+<br/> (ex.: `sudo chmod +r /var/log/syslog*`).
 
 3. Configure your ownCloud server:
   * Login as administrator in your ownCloud server (ex.: http://[localhost]/[owncloud])
